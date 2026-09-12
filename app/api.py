@@ -14,6 +14,7 @@ import re
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -40,6 +41,14 @@ app = FastAPI(title="Помощник поддержки МИСИС", docs_url="
 # и под uvicorn, и в тестах через TestClient без контекстного менеджера.
 config.ensure_dirs()
 storage.init()
+
+# Фронт собирают отдельно и открывают локально (file:// или свой порт), а API
+# живёт на сервере — без этого браузер не даст сделать ни одного запроса.
+# Пускаем всех: за этим API нет ни личных данных без токена, ни денег, а на
+# хакатоне возня с белым списком источников стоит дороже, чем даёт.
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+)
 
 ROLES = {"applicant", "student", "teacher"}
 CATEGORY_RU = {
