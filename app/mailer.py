@@ -23,7 +23,20 @@ from email import policy
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 
-_OUTBOX_DIR = "var/outbox"
+_DEFAULT_OUTBOX_DIR = "var/outbox"
+
+
+def _outbox_dir() -> str:
+    # Путь читается на каждой отправке, а не на импорте: в контейнере том лежит
+    # не в var/ (см. DATA_DIR в app/config.py), а тесты подменяют его на время теста.
+    override = os.environ.get("OUTBOX_DIR")
+    if override:
+        return override
+    try:
+        from app import config
+        return str(config.OUTBOX_DIR)
+    except Exception:
+        return _DEFAULT_OUTBOX_DIR
 
 
 def _build_message(to: str, subject: str, body_text: str, body_html: str | None) -> EmailMessage:
@@ -44,13 +57,14 @@ def _build_message(to: str, subject: str, body_text: str, body_html: str | None)
 
 
 def _write_to_outbox(msg: EmailMessage, to: str) -> None:
-    os.makedirs(_OUTBOX_DIR, exist_ok=True)
+    outbox = _outbox_dir()
+    os.makedirs(outbox, exist_ok=True)
     # time.time() с дробной частью + короткий случайный суффикс — чтобы
     # два письма подряд в тестах не перетёрли друг друга одним и тем же именем.
     ts = time.strftime("%Y%m%dT%H%M%S") + f".{int(time.time() * 1000) % 1000:03d}"
     safe_to = "".join(c if c.isalnum() or c in "@._-+" else "_" for c in to)
     suffix = uuid.uuid4().hex[:6]
-    filename = os.path.join(_OUTBOX_DIR, f"{ts}_{safe_to}_{suffix}.eml")
+    filename = os.path.join(outbox, f"{ts}_{safe_to}_{suffix}.eml")
     with open(filename, "wb") as f:
         f.write(msg.as_bytes())
 

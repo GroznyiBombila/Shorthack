@@ -53,8 +53,14 @@ def test_is_sufficient_false_on_low_confidence():
 
 
 def test_is_sufficient_true_on_good_match():
-    found = [{"id": "x", "score": 5.0}]
+    found = [{"id": "x", "score": rules.MIN_FAQ_SCORE + 3.0}]
     assert rules.is_sufficient({"confidence": 0.8}, found) is True
+
+
+def test_is_sufficient_false_on_weak_match():
+    """Случайное совпадение по одному слову весит 2-3 — отвечать по нему нельзя."""
+    found = [{"id": "x", "score": 3.0}]
+    assert rules.is_sufficient({"confidence": 0.9}, found) is False
 
 
 def test_route_reason_is_short_readable_string():

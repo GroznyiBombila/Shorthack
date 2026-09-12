@@ -9,6 +9,9 @@ import pytest
 @pytest.fixture(autouse=True)
 def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setenv("MAIL_MODE", "mock")
+    # Каталог отправленных писем берётся из окружения, иначе mailer уйдёт в общий
+    # том приложения (app.config.OUTBOX_DIR) и тесты начнут писать в рабочий var/.
+    monkeypatch.setenv("OUTBOX_DIR", "var/outbox")
     monkeypatch.chdir(tmp_path)
 
     import app.mailer as mailer

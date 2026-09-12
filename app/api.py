@@ -106,7 +106,7 @@ _CONFIDENCE_K = 10.0
 # Во втором и третьем найденном разделе часто лежит случайное совпадение по одному
 # слову. В ответ и в промпт пускаем только то, что сопоставимо с лучшим попаданием.
 _RELEVANCE_RATIO = 0.5
-_RELEVANCE_FLOOR = 3.0
+_RELEVANCE_FLOOR = rules.MIN_FAQ_SCORE
 
 
 def _confidence(score: float) -> float:

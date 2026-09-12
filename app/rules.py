@@ -84,7 +84,13 @@ def is_sufficient(analysis_like, found: list[dict]) -> bool:
         confidence = analysis_like.get("confidence")
     if confidence is not None and confidence < 0.4:
         return False
-    return True
+    return found[0].get("score", 0.0) >= MIN_FAQ_SCORE
+
+
+# Порог подобран по живым прогонам: релевантное попадание весит 9-21, случайное
+# совпадение по одному слову — 2-3. Без порога вопрос про справку "отвечался"
+# статьёй про общежитие, и модель честно писала, что в статье ничего нет.
+MIN_FAQ_SCORE = 6.0
 
 
 def route_reason(rule: str, **details: object) -> str:

@@ -12,6 +12,9 @@ def isolated_env(tmp_path, monkeypatch):
     monkeypatch.setenv("APP_DB_PATH", str(tmp_path / "app.db"))
     monkeypatch.setenv("SECRET_KEY", "test-secret-key")
     monkeypatch.setenv("MAIL_MODE", "mock")
+    # Письма с кодами должны падать во временный каталог, а не в рабочий том
+    # приложения: mailer берёт путь из OUTBOX_DIR, иначе из app.config.
+    monkeypatch.setenv("OUTBOX_DIR", "var/outbox")
     monkeypatch.chdir(tmp_path)
 
     import app.auth as auth
