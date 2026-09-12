@@ -57,6 +57,7 @@
 
       <div class="header-user-status">
         <button type="button" class="btn-text" id="btnMyTicketsNav">Мои обращения</button>
+        <button type="button" class="btn-text" id="btnProfileNav" style="display:none;">👤 Профиль</button>
         <span class="badge-role" id="hdrRoleBadge">Студент</span>
         <span class="badge-verified" id="hdrVerifiedBadge" style="display:none;" title="Почта подтверждена">✓ email</span>
         <button type="button" class="btn-text" id="hdrLogoutBtn" style="display:none;">Выйти</button>
@@ -104,10 +105,10 @@
         <div class="quick-actions-bar" id="scheduleQuickBar" style="display:none;">
           <button type="button" class="pill-btn" id="btnSchedToday">📅 Расписание на сегодня</button>
           <button type="button" class="pill-btn" id="btnSchedTomorrow">📅 На завтра</button>
-          <label class="pill-btn" style="position:relative; cursor:pointer;">
+          <button type="button" class="pill-btn" id="btnSchedPickDay" style="position:relative; cursor:pointer;">
             <span>🗓️ Выбрать день</span>
-            <input type="date" id="dateSchedPicker" style="position:absolute; opacity:0; width:100%; left:0; top:0; height:100%; cursor:pointer;">
-          </label>
+            <input type="date" id="dateSchedPicker" tabindex="-1" style="position:absolute; opacity:0; width:100%; left:0; top:0; height:100%; pointer-events:none;">
+          </button>
         </div>
 
         <form id="chatForm" onsubmit="return false;" style="margin-top:auto;">
