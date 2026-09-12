@@ -32,6 +32,15 @@ _ENDINGS = sorted(
 _PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)
 _SPACE_RE = re.compile(r"\s+")
 
+# Служебные слова (предлоги, союзы, частицы) намеренно исключены из сравнения:
+# без этого фильтра короткие предлоги вроде "в"/"на"/"по" совпадают почти с
+# любой записью базы и полностью размывают ранжирование ложными совпадениями.
+_STOPWORDS = {
+    "в", "не", "на", "по", "из", "за", "от", "до", "и", "а", "но", "что",
+    "как", "для", "то", "же", "бы", "ли", "у", "с", "о", "об", "к", "ко",
+    "это", "нет", "есть", "или", "чтобы", "при", "уже", "еще", "ещё", "без",
+}
+
 
 def _normalize(text: str) -> str:
     """Нижний регистр, ё->е, без пунктуации, схлопнутые пробелы."""
@@ -51,7 +60,8 @@ def _stem(word: str) -> str:
 
 
 def _stem_all(text: str) -> list[str]:
-    return [_stem(w) for w in _normalize(text).split() if w]
+    words = _normalize(text).split()
+    return [_stem(w) for w in words if w and w not in _STOPWORDS]
 
 
 @lru_cache(maxsize=None)
@@ -109,7 +119,7 @@ def _field_score(query_stems: list[str], query_norm: str, field_text: str, weigh
     if not field_text:
         return 0.0
     field_norm = _normalize(field_text)
-    field_stems = set(_stem(w) for w in field_norm.split() if w)
+    field_stems = set(_stem(w) for w in field_norm.split() if w and w not in _STOPWORDS)
     if not field_stems:
         return 0.0
     overlap = sum(1 for s in query_stems if s in field_stems)
