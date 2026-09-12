@@ -61,7 +61,14 @@ def _write_cache(key: str, data: dict) -> None:
     _cache_path(key).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
 
+# Groq отклоняет response_format=json_object, если слово "json" не встречается в сообщениях.
+# Страховка на уровне клиента: промпты пишут разные люди, и такой 400 ловится только в рантайме.
+_JSON_HINT = "\n\nОтвет верните строго в формате JSON."
+
+
 def _call_model(model: str, system: str, user: str, max_tokens: int) -> httpx.Response:
+    if "json" not in (system + user).lower():
+        system = system + _JSON_HINT
     headers = {
         "Authorization": f"Bearer {config.GROQ_API_KEY}",
         "User-Agent": _USER_AGENT,
@@ -140,7 +147,8 @@ def complete_json(system: str, user: str, *, max_tokens: int = 1200) -> dict:
             raise LLMUnavailable(f"обе модели вернули {resp.status_code}")
 
     if resp.status_code >= 400:
-        raise LLMUnavailable(f"{model_used}: HTTP {resp.status_code}")
+        # Тело ответа в тексте ошибки: без него 400 от Groq неотличимы друг от друга.
+        raise LLMUnavailable(f"{model_used}: HTTP {resp.status_code} {resp.text[:300]}")
 
     parsed, usage = _extract_json(resp)
     logger.info(
