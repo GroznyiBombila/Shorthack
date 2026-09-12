@@ -9,8 +9,12 @@ data/demo/scenarios.json через НАСТОЯЩИЕ эндпоинты: то�
 пользовательского промпта, см. app/llm_client._cache_key).
 
 Запуск из корня проекта:
-    python scripts/warm_cache.py            # прогреть
+    python scripts/warm_cache.py            # прогреть локальный кэш
     python scripts/warm_cache.py --dry-run  # показать, что уже в кэше, без сети
+    python scripts/warm_cache.py --base-url http://45.87.41.186:8080   # прогреть сервер
+
+Кэш дисковый и лежит рядом с приложением, поэтому прогрев на ноутбуке никак не
+помогает контейнеру на сервере: демо греем там, где оно будет показываться.
 """
 from __future__ import annotations
 
@@ -29,9 +33,9 @@ from app import config, llm_client, prompts  # noqa: E402
 SCENARIOS = ROOT / "data" / "demo" / "scenarios.json"
 
 # Пауза между сценариями. Один прогон обращения — это два вызова модели примерно
-# по 1100 токенов, то есть около 2200. При лимите 8000 токенов в минуту три
-# обращения подряд уже впритык, поэтому разносим их во времени.
-PAUSE_SEC = 4.0
+# по 1100 токенов, то есть около 2200. При лимите 8000 токенов в минуту с паузой в
+# 4 секунды прогрев на сервере всё равно словил 429, поэтому пауза увеличена.
+PAUSE_SEC = 10.0
 
 
 def analyze_cache_key(text: str, role: str) -> str:
@@ -67,16 +71,31 @@ def dry_run(scenarios: list[dict]) -> int:
     return 0 if warm == len(scenarios) else 1
 
 
-def warm(scenarios: list[dict]) -> int:
+def _client(base_url: str | None):
+    """Локально — приложение в процессе, с --base-url — обычный HTTP-клиент.
+
+    У обоих совместимый интерфейс .post(path, json=...), поэтому прогрев не знает,
+    греет он свой кэш или серверный.
+    """
+    if base_url:
+        import httpx
+        return httpx.Client(base_url=base_url, timeout=60)
+
     # Импорт приложения тяжёлый и не нужен для --dry-run, поэтому он здесь.
     from fastapi.testclient import TestClient
 
     from app.api import app
+    return TestClient(app)
 
+
+def warm(scenarios: list[dict], base_url: str | None = None) -> int:
     failed: list[str] = []
-    with TestClient(app) as client:
+    # На удалённом сервере состояние кэша не видно: считаем всё холодным и
+    # выдерживаем паузу после каждого обращения.
+    local = base_url is None
+    with _client(base_url) as client:
         for index, item in enumerate(scenarios, start=1):
-            was_cached = is_cached(item["text"], item["role"])
+            was_cached = is_cached(item["text"], item["role"]) if local else False
             label = f"[{index}/{len(scenarios)}] {item['id']}"
             try:
                 response = client.post("/api/ask", json={"text": item["text"],
@@ -119,13 +138,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true",
                         help="показать состояние кэша, не обращаясь к модели")
+    parser.add_argument("--base-url", default=None,
+                        help="прогреть удалённый инстанс, например http://45.87.41.186:8080")
     args = parser.parse_args()
 
     logging.basicConfig(level="WARNING")  # логи llm_client не мешают читать отчёт
     config.ensure_dirs()
     scenarios = load_scenarios()
     print(f"Сценариев: {len(scenarios)}, модель: {config.GROQ_MODEL}, кэш: {config.CACHE_DIR}\n")
-    return dry_run(scenarios) if args.dry_run else warm(scenarios)
+    if args.dry_run:
+        if args.base_url:
+            sys.exit("--dry-run смотрит локальный кэш и с --base-url несовместим")
+        return dry_run(scenarios)
+    return warm(scenarios, args.base_url)
 
 
 if __name__ == "__main__":

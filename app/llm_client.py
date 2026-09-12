@@ -46,19 +46,25 @@ def _cache_path(key: str) -> Path:
     return config.CACHE_DIR / f"{key}.json"
 
 
-def _read_cache(key: str) -> dict | None:
+def _read_cache(key: str) -> tuple[dict, str] | None:
+    """Возвращает (ответ, модель-автор) или None. Автор нужен, чтобы в логе не
+    выдавать ответ запасной модели за ответ основной."""
     path = _cache_path(key)
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None  # битый файл кэша — считаем, что его нет, а не падаем
+    if isinstance(raw, dict) and isinstance(raw.get("data"), dict) and "model" in raw:
+        return raw["data"], str(raw["model"])
+    return raw, "неизвестна"  # файл старого формата: только сам ответ
 
 
-def _write_cache(key: str, data: dict) -> None:
+def _write_cache(key: str, data: dict, model: str) -> None:
     config.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    _cache_path(key).write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    payload = {"model": model, "data": data}
+    _cache_path(key).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
 
 # Groq отклоняет response_format=json_object, если слово "json" не встречается в сообщениях.
@@ -130,8 +136,8 @@ def complete_json(system: str, user: str, *, max_tokens: int = 1200) -> dict:
     primary_key = _cache_key(config.GROQ_MODEL, system, user)
     cached = _read_cache(primary_key)
     if cached is not None:
-        logger.info("llm cache=hit model=%s", config.GROQ_MODEL)
-        return cached
+        logger.info("llm cache=hit model=%s", cached[1])
+        return cached[0]
 
     resp = _send_with_retry(config.GROQ_MODEL, system, user, max_tokens)
     model_used = config.GROQ_MODEL
@@ -155,7 +161,12 @@ def complete_json(system: str, user: str, *, max_tokens: int = 1200) -> dict:
         "llm cache=miss model=%s tokens=%s",
         model_used, usage.get("total_tokens", "?"),
     )
-    _write_cache(_cache_key(model_used, system, user), parsed)
+    # Кладём ответ и под ключ основной модели тоже. Иначе прогрев, попавший на 429 и
+    # отработавший запасной моделью, не прогревает ничего: на защите тот же вопрос
+    # снова пойдёт в сеть. Автор ответа при этом сохранён внутри файла и виден в логе.
+    _write_cache(_cache_key(model_used, system, user), parsed, model_used)
+    if model_used != config.GROQ_MODEL:
+        _write_cache(primary_key, parsed, model_used)
     return parsed
 
 
