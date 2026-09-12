@@ -23,7 +23,7 @@
 Файлы `.xls` (старый бинарный формат, **не** `.xlsx`), по одному на институт.
 Пример лежит в `data/schedule/itkn-110926.xls`.
 
-**Полный разбор формата — в [docs/DATA-schedule.md](../DATA-schedule.md).** Прочитай его
+**Полный разбор формата — в [формат файла расписания](format-raspisaniya.md).** Прочитай его
 целиком перед началом: там расписаны листы, шапка, раскладка колонок по группам и подгруппам,
 структура «две строки на пару» и ловушка с латинской буквой в номере аудитории. Это сэкономит
 тебе час на реверс-инжиниринге.
@@ -32,7 +32,7 @@
 
 ```python
 def parse_schedule_file(path: str, institute: str) -> dict:
-    """Разбирает .xls в структуру, описанную в docs/DATA-schedule.md.
+    """Разбирает .xls в структуру, описанную в team/nyonless/task/format-raspisaniya.md.
     Возвращает {'institute', 'source_file', 'parsed_at', 'groups': {...}}."""
 
 def parse_lesson_cell(subject_cell: str, room_cell: str) -> dict | None:
