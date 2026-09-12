@@ -9,8 +9,12 @@
 """
 from __future__ import annotations
 
+import glob
+import hmac
 import logging
 import re
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -327,6 +331,25 @@ class VerifyIn(BaseModel):
     code: str
 
 
+def _last_demo_code(email: str) -> str | None:
+    """AUTH_SHOW_CODE: достаём код тем же способом, что и тесты app/auth.py
+    (см. tests/test_auth.py::_last_code_from_outbox) — из последнего письма в
+    outbox, не трогая логику auth.py. Почта администратором домена запрещена,
+    поэтому это единственный способ узнать код в демо-режиме.
+    """
+    safe = "".join(c if c.isalnum() or c in "@._-+" else "_" for c in email.strip().lower())
+    files = sorted(glob.glob(str(Path(mailer._outbox_dir()) / f"*_{safe}_*.eml")))
+    if not files:
+        return None
+    with open(files[-1], "rb") as f:
+        msg = BytesParser(policy=policy.default).parse(f)
+    part = msg.get_body(preferencelist=("plain",))
+    if part is None:
+        return None
+    match = re.search(r"код подтверждения:\s*(\d{6})", part.get_content(), re.IGNORECASE)
+    return match.group(1) if match else None
+
+
 @app.post("/api/auth/request-code")
 def request_code(body: EmailIn, request: Request) -> dict:
     ip = request.client.host if request.client else "0.0.0.0"
@@ -337,7 +360,12 @@ def request_code(body: EmailIn, request: Request) -> dict:
     except auth.RateLimited as exc:
         raise fail(429, "rate_limited", "Слишком часто, подождите немного",
                    retry_after_sec=getattr(exc, "retry_after_sec", 60))
-    return {"ok": True, **result}
+    response = {"ok": True, **result}
+    if config.AUTH_SHOW_CODE:
+        demo_code = _last_demo_code(body.email)
+        if demo_code:
+            response["demo_code"] = demo_code
+    return response
 
 
 @app.post("/api/auth/verify")
@@ -370,13 +398,14 @@ def submit(body: SubmitIn) -> dict:
         raise fail(409, "draft_not_ready", "Не хватает данных для обращения")
 
     # Повторная отправка того же черновика возвращает уже созданное обращение.
-    # Иначе двойной клик на кнопке — это два письма в поддержку с разными номерами,
-    # а заодно дешёвый способ завалить ящик с чужим draft_id.
+    # Иначе двойной клик на кнопке — это две записи в очереди с разными
+    # номерами на одно и то же обращение, а заодно дешёвый способ засорить
+    # очередь чужим draft_id.
     existing = storage.ticket_by_draft(body.draft_id)
     if existing:
         return {"ticket_id": existing["ticket_id"], "subject": existing["subject"],
-                "sent_to": existing["sent_to"], "mail_status": existing["mail_status"],
-                "anonymous": bool(existing["anonymous"]), "duplicate": True}
+                "delivery": "inbox", "anonymous": bool(existing["anonymous"]),
+                "duplicate": True}
 
     email = None
     if not body.anonymous:
@@ -393,9 +422,10 @@ def submit(body: SubmitIn) -> dict:
     subject = _subject(draft["category"], draft["priority"],
                        _gist(draft["subject"]), ticket_id, institute=institute)
 
-    # Блок для сотрудника, который разбирает ящик: кому переслать, номер, кто
-    # спрашивает и приоритет — раньше сотрудник узнавал это, только прочитав
-    # письмо целиком; теперь достаточно первых четырёх строк.
+    # Блок для сотрудника, который разбирает очередь: кому по сути адресовано,
+    # номер, кто спрашивает и приоритет — те же первые строки, что раньше были
+    # в письме, только оно теперь никуда не уходит (см. Decision log в README:
+    # администратор домена запретил пароли приложений, письмом послать нечем).
     who = (f"{ROLE_RU.get(role, role or 'роль не определена')}, {email}" if email
            else "анонимное — ответить невозможно")
     header_lines = [
@@ -406,15 +436,159 @@ def submit(body: SubmitIn) -> dict:
     ]
     text = "\n".join(header_lines) + "\n\n" + draft["body"]
 
-    # Ящик пишет сам себе (см. app/mailer.py и app/routing.py): реального адреса
-    # деканата у нас нет, поэтому SUPPORT_EMAIL == MAIL_FROM == SMTP_USER.
-    sent_to = config.SUPPORT_EMAIL or "support@misis.ru"
-    result = mailer.send(sent_to, subject, text, reply_to=email)
+    # mailer.send здесь больше не вызывается: обращение остаётся во внутренней
+    # очереди со статусом 'new', сотрудник отвечает в консоли (см. ниже), а
+    # студент видит ответ через /api/my/tickets и /api/ticket/{id}.
     storage.save_ticket(ticket_id=ticket_id, draft_id=body.draft_id, email=email,
                         anonymous=body.anonymous, subject=subject, body=text,
-                        sent_to=sent_to, mail_status=result["status"])
-    return {"ticket_id": ticket_id, "subject": subject, "sent_to": sent_to,
-            "mail_status": result["status"], "anonymous": body.anonymous}
+                        sent_to=to_whom)
+    return {"ticket_id": ticket_id, "subject": subject, "delivery": "inbox",
+            "anonymous": body.anonymous}
+
+
+# --- Общие помощники карточки обращения (консоль сотрудника + сторона студента)
+
+def _recipient_of(ticket: dict) -> str:
+    """Адресат по сути — та же таблица routing.py, что и при отправке; институт
+    достаём из answers черновика (join сделан в storage), а не храним второй раз."""
+    category = ticket.get("category") or "other"
+    institute = (ticket.get("answers") or {}).get("институт")
+    return routing.recipient(category, institute)
+
+
+def _ticket_summary(ticket: dict) -> dict:
+    return {
+        "ticket_id": ticket["ticket_id"],
+        "subject": ticket["subject"],
+        "status": ticket["status"],
+        "priority": ticket.get("priority"),
+        "category": ticket.get("category"),
+        "recipient": _recipient_of(ticket),
+        "anonymous": bool(ticket["anonymous"]),
+        "email": ticket.get("email"),
+        "created_at": ticket["created_at"],
+        "last_message_at": ticket.get("last_message_at") or ticket["created_at"],
+        "messages_count": ticket.get("messages_count", len(ticket.get("messages") or [])),
+    }
+
+
+def _ticket_card(ticket: dict) -> dict:
+    card = _ticket_summary(ticket)
+    card["body"] = ticket["body"]
+    card["messages"] = ticket.get("messages") or []
+    return card
+
+
+def _check_ticket_owner(ticket: dict, authorization: str | None) -> None:
+    """Именное обращение доступно только своей подтверждённой почте; анонимное —
+    всем, у кого есть сам ticket_id (он и есть секрет, см. контракт п.4)."""
+    if ticket.get("anonymous"):
+        return
+    session = None
+    if authorization and authorization.lower().startswith("bearer "):
+        session = auth.validate_token(authorization.split(" ", 1)[1].strip())
+    if not session or session.get("email") != ticket.get("email"):
+        raise fail(403, "forbidden", "Обращение недоступно")
+
+
+# --- Консоль сотрудника поддержки --------------------------------------------
+# Почта отключена (см. Decision log): вместо ответа письмом сотрудник отвечает
+# здесь, студент видит ответ в своём интерфейсе. Квоту модели эти ручки не
+# тратят — под _guard не ставим.
+
+def _require_operator(x_operator_token: str | None) -> None:
+    if not config.OPERATOR_TOKEN:
+        # Не 401: без настроенного токена нельзя даже сравнить его с чем-то,
+        # а пускать всех в этом случае — незащищённая консоль по недосмотру.
+        raise fail(503, "not_configured", "Консоль сотрудника не настроена")
+    if not x_operator_token or not hmac.compare_digest(x_operator_token, config.OPERATOR_TOKEN):
+        raise fail(401, "invalid_token", "Неверный токен сотрудника")
+
+
+@app.get("/api/operator/tickets")
+def operator_tickets(status: str = "all", limit: int = 50,
+                     x_operator_token: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_token)
+    if status != "all" and status not in storage.TICKET_STATUSES:
+        raise fail(400, "invalid_status", "Неизвестный статус", requested=status)
+    tickets = storage.list_tickets(None if status == "all" else status, limit=limit)
+    return {"tickets": [_ticket_summary(t) for t in tickets]}
+
+
+@app.get("/api/operator/tickets/{ticket_id}")
+def operator_ticket(ticket_id: str, x_operator_token: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_token)
+    ticket = storage.get_ticket_card(ticket_id)
+    if not ticket:
+        raise fail(404, "ticket_not_found", "Обращение не найдено")
+    return _ticket_card(ticket)
+
+
+class ReplyIn(BaseModel):
+    text: str = Field(min_length=1, max_length=8000)
+
+
+@app.post("/api/operator/tickets/{ticket_id}/reply")
+def operator_reply(ticket_id: str, body: ReplyIn,
+                   x_operator_token: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_token)
+    if not storage.get_ticket(ticket_id):
+        raise fail(404, "ticket_not_found", "Обращение не найдено")
+    storage.add_message(ticket_id, "operator", body.text)
+    storage.set_ticket_status(ticket_id, "answered")
+    return _ticket_card(storage.get_ticket_card(ticket_id))
+
+
+class TicketStatusIn(BaseModel):
+    status: str
+
+
+@app.post("/api/operator/tickets/{ticket_id}/status")
+def operator_status(ticket_id: str, body: TicketStatusIn,
+                    x_operator_token: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_token)
+    if body.status not in storage.TICKET_STATUSES:
+        raise fail(400, "invalid_status", "Неизвестный статус", requested=body.status)
+    if not storage.get_ticket(ticket_id):
+        raise fail(404, "ticket_not_found", "Обращение не найдено")
+    storage.set_ticket_status(ticket_id, body.status)
+    return _ticket_card(storage.get_ticket_card(ticket_id))
+
+
+# --- Сторона студента: свои обращения и переписка ----------------------------
+# Чтение своих обращений и дозапись уточнения модель не зовут — под _guard
+# не ставим (см. п.6 постановки: квоту тратят только /api/ask и черновик).
+
+@app.get("/api/my/tickets")
+def my_tickets(authorization: str | None = Header(default=None)) -> dict:
+    session = _token_email(authorization)
+    tickets = storage.tickets_by_email(session["email"])
+    return {"tickets": [_ticket_card(t) for t in tickets]}
+
+
+@app.get("/api/ticket/{ticket_id}")
+def ticket_get(ticket_id: str, authorization: str | None = Header(default=None)) -> dict:
+    ticket = storage.get_ticket_card(ticket_id)
+    if not ticket:
+        raise fail(404, "ticket_not_found", "Обращение не найдено")
+    _check_ticket_owner(ticket, authorization)
+    return _ticket_card(ticket)
+
+
+class TicketMessageIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
+
+
+@app.post("/api/ticket/{ticket_id}/message")
+def ticket_message(ticket_id: str, body: TicketMessageIn,
+                   authorization: str | None = Header(default=None)) -> dict:
+    ticket = storage.get_ticket_card(ticket_id)
+    if not ticket:
+        raise fail(404, "ticket_not_found", "Обращение не найдено")
+    _check_ticket_owner(ticket, authorization)
+    storage.add_message(ticket_id, "user", body.text)
+    storage.set_ticket_status(ticket_id, "in_progress")
+    return _ticket_card(storage.get_ticket_card(ticket_id))
 
 
 # --- 5a-5b. Профиль и расписание (модули nyonless) ---------------------------
@@ -485,6 +659,7 @@ _WEEKDAYS = ["Понедельник", "Вторник", "Среда", "Четв
 
 @app.get("/api/health")
 def health() -> dict:
+    counts = storage.ticket_counts()
     return {
         "status": "ok",
         "mail_mode": config.MAIL_MODE,
@@ -492,6 +667,10 @@ def health() -> dict:
         "faq_items": sum(len(faq.load(r)) for r in ROLES),
         "modules": {"profile": profile_mod is not None,
                     "schedule": schedule_mod is not None},
+        "tickets": {"new": counts.get("new", 0),
+                   "in_progress": counts.get("in_progress", 0),
+                   "answered": counts.get("answered", 0)},
+        "limits": limits.snapshot(),
     }
 
 

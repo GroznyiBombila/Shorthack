@@ -50,6 +50,18 @@ SUPPORT_EMAIL: str = os.getenv("SUPPORT_EMAIL", "") or MAIL_FROM
 # --- Расписание ---
 SEMESTER_START: str = os.getenv("SEMESTER_START", "2026-09-01")
 
+# --- Консоль сотрудника поддержки ---
+# Не задан -> эндпоинты /api/operator/* отвечают 503, а не пускают всех подряд
+# без проверки (см. Decision log: почта отключена администратором домена,
+# консоль — единственный канал ответа, значит и защищать её нужно всерьёз).
+OPERATOR_TOKEN: str = os.getenv("OPERATOR_TOKEN", "")
+
+# --- Демо-режим кода подтверждения ---
+# Почта корпоративного ящика недоступна (запрещены пароли приложений), поэтому
+# код подтверждения студенту доехать не может. Включается только для защиты/
+# демо и должна быть выключена в бою — см. docs/API.md.
+AUTH_SHOW_CODE: bool = os.getenv("AUTH_SHOW_CODE", "").strip().lower() in {"1", "true", "yes", "on"}
+
 # --- Приложение ---
 APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT: int = int(os.getenv("APP_PORT", "8000"))

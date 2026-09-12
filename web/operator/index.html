@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Консоль поддержки — оператор</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Экран входа -->
+  <div id="loginScreen" class="screen login-screen">
+    <div class="login-card">
+      <h1>Консоль поддержки</h1>
+      <p class="muted">Введите токен сотрудника, чтобы открыть очередь обращений.</p>
+
+      <label for="tokenInput">Токен сотрудника</label>
+      <input id="tokenInput" type="password" autocomplete="off" placeholder="Токен, выданный администратором" />
+
+      <button id="loginBtn" class="btn-primary" type="button">Войти</button>
+
+      <div id="loginError" class="error-msg" hidden></div>
+    </div>
+  </div>
+
+  <!-- Основной экран -->
+  <div id="mainScreen" class="screen main-screen" hidden>
+    <header class="topbar">
+      <h1>Очередь обращений</h1>
+      <div class="topbar-right">
+        <span id="connStatus" class="conn-status" hidden>нет связи с сервером</span>
+        <label class="autorefresh-toggle">
+          <input type="checkbox" id="autoRefreshToggle" checked>
+          Автообновление (20 сек)
+        </label>
+        <button id="logoutBtn" class="btn-secondary" type="button">Выйти</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="queue-pane">
+        <nav class="tabs" id="statusTabs">
+          <button type="button" class="tab" data-status="new">Новые <span class="count" data-count="new">0</span></button>
+          <button type="button" class="tab" data-status="in_progress">В работе <span class="count" data-count="in_progress">0</span></button>
+          <button type="button" class="tab" data-status="answered">Отвеченные <span class="count" data-count="answered">0</span></button>
+          <button type="button" class="tab" data-status="all">Все <span class="count" data-count="all">0</span></button>
+        </nav>
+        <div id="queueList" class="queue-list" aria-live="polite"></div>
+      </aside>
+
+      <section class="ticket-pane" id="ticketPane">
+        <div class="placeholder">Выберите обращение слева, чтобы увидеть подробности.</div>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

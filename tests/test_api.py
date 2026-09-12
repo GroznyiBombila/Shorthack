@@ -177,7 +177,9 @@ def test_submit_anonymous_draft_creates_numbered_ticket(client, monkeypatch):
     body = response.json()
     year = datetime.now(timezone.utc).year
     assert body["ticket_id"] == f"MISIS-{year}-0001"
-    assert body["mail_status"] in {"mocked", "sent"}
+    # Почта отключена (администратор домена запретил пароли приложений):
+    # обращение остаётся во внутренней очереди вместо письма.
+    assert body["delivery"] == "inbox"
     assert body["anonymous"] is True
 
 
@@ -213,10 +215,11 @@ def test_submit_unknown_draft_returns_404(client):
     assert response.json()["error"]["code"] == "draft_not_found"
 
 
-# --- Маршрутизация адресата и почта заявки -----------------------------------
-# Схема "ящик пишет сам себе" (см. app/mailer.py, app/routing.py): реального
-# адреса деканата нет, поэтому адресат по сути — в теме письма, а Reply-To —
-# единственный работающий канал обратной связи с заявителем.
+# --- Маршрутизация адресата обращения ----------------------------------------
+# Почта отключена (см. Decision log: администратор домена запретил пароли
+# приложений), поэтому обратная связь идёт через очередь и /api/my/tickets,
+# а не через Reply-To письма. Адрес заявителя по-прежнему только в теме и в
+# первых строках карточки — на случай, если почту когда-нибудь вернут.
 
 def _last_outbox_mail(outbox_dir):
     import glob
@@ -229,11 +232,15 @@ def _last_outbox_mail(outbox_dir):
         return BytesParser(policy=policy.default).parse(f)
 
 
-def test_submit_confirmed_email_sets_reply_to(client, monkeypatch, api_env):
+def test_submit_confirmed_email_ties_ticket_to_student_and_is_visible_to_them(
+    client, monkeypatch, api_env
+):
     import re
 
     draft_id = ready_draft(client, monkeypatch)
 
+    # Код подтверждения — единственная почта, которая продолжает реально
+    # уходить (см. docs/API.md): обращение само письмом больше не отправляется.
     code_request = client.post("/api/auth/request-code", json={"email": "student@misis.ru"})
     assert code_request.status_code == 200, code_request.text
     code_mail = _last_outbox_mail(api_env / "outbox")
@@ -247,19 +254,33 @@ def test_submit_confirmed_email_sets_reply_to(client, monkeypatch, api_env):
     submit = client.post("/api/ticket/submit", json={
         "draft_id": draft_id, "token": token, "anonymous": False})
     assert submit.status_code == 200, submit.text
+    ticket_id = submit.json()["ticket_id"]
 
-    ticket_mail = _last_outbox_mail(api_env / "outbox")
-    assert ticket_mail["Reply-To"] == "student@misis.ru"
+    # Именное обращение доступно по своему токену и попадает в список "моих".
+    card = client.get(f"/api/ticket/{ticket_id}",
+                      headers={"Authorization": f"Bearer {token}"})
+    assert card.status_code == 200, card.text
+    assert card.json()["email"] == "student@misis.ru"
+    assert card.json()["status"] == "new"
+
+    mine = client.get("/api/my/tickets", headers={"Authorization": f"Bearer {token}"})
+    assert mine.status_code == 200, mine.text
+    assert any(t["ticket_id"] == ticket_id for t in mine.json()["tickets"])
 
 
-def test_submit_anonymous_has_no_reply_to(client, monkeypatch, api_env):
+def test_submit_anonymous_ticket_has_no_email_and_is_reachable_by_id(client, monkeypatch):
     draft_id = ready_draft(client, monkeypatch)
 
     submit = client.post("/api/ticket/submit", json={"draft_id": draft_id, "anonymous": True})
     assert submit.status_code == 200, submit.text
+    ticket_id = submit.json()["ticket_id"]
 
-    ticket_mail = _last_outbox_mail(api_env / "outbox")
-    assert ticket_mail["Reply-To"] is None
+    # Анонимное обращение не привязано к почте, но сам ticket_id — уже секрет,
+    # достаточный для доступа без токена.
+    card = client.get(f"/api/ticket/{ticket_id}")
+    assert card.status_code == 200, card.text
+    assert card.json()["email"] is None
+    assert card.json()["anonymous"] is True
 
 
 def test_subject_contains_recipient_and_stays_within_200_chars_even_with_huge_gist():

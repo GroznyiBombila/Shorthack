@@ -53,13 +53,29 @@ CREATE TABLE IF NOT EXISTS tickets (
     anonymous   INTEGER NOT NULL DEFAULT 0,
     subject     TEXT NOT NULL,
     body        TEXT NOT NULL,
-    sent_to     TEXT,
-    mail_status TEXT,
+    sent_to     TEXT,            -- почта отключена, поле держим для истории записей
+    mail_status TEXT,            -- то же самое: не используется, но не мигрируем старые строки
+    status      TEXT NOT NULL DEFAULT 'new',  -- new | in_progress | answered | closed
+    created_at  TEXT NOT NULL
+);
+
+-- Переписка по обращению: почты нет, ответ сотрудника и уточнение студента
+-- живут здесь, а не улетают письмом (см. Decision log в README).
+CREATE TABLE IF NOT EXISTS ticket_messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id   TEXT NOT NULL,
+    author      TEXT NOT NULL,   -- 'operator' | 'user'
+    text        TEXT NOT NULL,
     created_at  TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_drafts_request ON drafts(request_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages(ticket_id, created_at);
 """
+
+# Допустимые статусы обращения — используется и для валидации входа в API,
+# и как единый источник правды вместо разбросанных строковых литералов.
+TICKET_STATUSES = ("new", "in_progress", "answered", "closed")
 
 
 def _now() -> str:
@@ -88,6 +104,21 @@ def init() -> None:
     config.ensure_dirs()
     with _conn() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Точечные ALTER TABLE для баз, созданных до статусов и переписки.
+
+    На сервере база уже с данными: CREATE TABLE IF NOT EXISTS не добавляет
+    столбец в существующую таблицу, поэтому докатываем миграцию отдельно и
+    идемпотентно — проверяем PRAGMA table_info, а не ловим ошибку "duplicate
+    column", иначе на чистой базе (без tickets вовсе) можно словить другую
+    ошибку раньше, чем схема вообще создалась.
+    """
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(tickets)")}
+    if "status" not in columns:
+        conn.execute("ALTER TABLE tickets ADD COLUMN status TEXT NOT NULL DEFAULT 'new'")
 
 
 # --- Обращения ---------------------------------------------------------------
@@ -165,14 +196,20 @@ def next_ticket_id() -> str:
 
 def save_ticket(
     *, ticket_id: str, draft_id: str, email: str | None, anonymous: bool,
-    subject: str, body: str, sent_to: str | None, mail_status: str,
+    subject: str, body: str, sent_to: str | None = None, mail_status: str | None = None,
 ) -> None:
+    """Кладёт обращение во внутреннюю очередь со статусом 'new'.
+
+    sent_to/mail_status — наследие почтовой схемы, почта из /api/ticket/submit
+    убрана (см. Decision log), но столбцы оставлены нетронутыми ради старых
+    строк на сервере; новые обращения просто не заполняют mail_status.
+    """
     with _conn() as conn:
         conn.execute(
             "INSERT INTO tickets (ticket_id, draft_id, email, anonymous, subject, body,"
-            " sent_to, mail_status, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            " sent_to, mail_status, status, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (ticket_id, draft_id, email, int(anonymous), subject, body,
-             sent_to, mail_status, _now()),
+             sent_to, mail_status, "new", _now()),
         )
 
 
@@ -200,6 +237,91 @@ def recent_tickets(limit: int = 20) -> list[dict]:
             "SELECT * FROM tickets ORDER BY created_at DESC LIMIT ?", (limit,)
         ).fetchall()
     return [_row(r) for r in rows]  # type: ignore[misc]
+
+
+# --- Статусы и переписка (замена почте, см. Decision log в README) ----------
+
+_TICKET_JOIN_DRAFT = (
+    "SELECT t.*, d.category AS category, d.priority AS priority, d.answers AS answers"
+    " FROM tickets t LEFT JOIN drafts d ON d.draft_id = t.draft_id"
+)
+
+
+def _attach_messages(conn: sqlite3.Connection, data: dict) -> dict:
+    """Достаёт переписку и производные поля (messages_count, last_message_at).
+
+    Общий код для карточки одного обращения и для списков — иначе счётчик
+    сообщений и дата последнего сообщения считались бы по-разному в разных
+    ручках API.
+    """
+    rows = conn.execute(
+        "SELECT author, text, created_at FROM ticket_messages"
+        " WHERE ticket_id = ? ORDER BY created_at ASC",
+        (data["ticket_id"],),
+    ).fetchall()
+    data["messages"] = [dict(r) for r in rows]
+    data["messages_count"] = len(data["messages"])
+    data["last_message_at"] = data["messages"][-1]["created_at"] if data["messages"] else data["created_at"]
+    return data
+
+
+def set_ticket_status(ticket_id: str, status: str) -> None:
+    with _conn() as conn:
+        conn.execute("UPDATE tickets SET status = ? WHERE ticket_id = ?", (status, ticket_id))
+
+
+def add_message(ticket_id: str, author: str, text: str) -> dict:
+    """author: 'operator' | 'user'. Возвращает добавленное сообщение."""
+    created_at = _now()
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO ticket_messages (ticket_id, author, text, created_at) VALUES (?,?,?,?)",
+            (ticket_id, author, text, created_at),
+        )
+    return {"author": author, "text": text, "created_at": created_at}
+
+
+def get_ticket_card(ticket_id: str) -> dict | None:
+    """Полная карточка обращения: поля тикета + категория/приоритет черновика
+    (для маршрутизации адресата) + переписка."""
+    with _conn() as conn:
+        row = conn.execute(_TICKET_JOIN_DRAFT + " WHERE t.ticket_id = ?", (ticket_id,)).fetchone()
+        if row is None:
+            return None
+        data = _row(row, json_fields=("answers",))
+        return _attach_messages(conn, data)
+
+
+def list_tickets(status: str | None = None, limit: int = 50) -> list[dict]:
+    """Обращения для консоли сотрудника, свежие сверху.
+
+    status=None — без фильтра (соответствует 'all' в контракте API).
+    """
+    query = _TICKET_JOIN_DRAFT
+    params: list = []
+    if status:
+        query += " WHERE t.status = ?"
+        params.append(status)
+    query += " ORDER BY t.created_at DESC LIMIT ?"
+    params.append(limit)
+    with _conn() as conn:
+        rows = conn.execute(query, params).fetchall()
+        return [_attach_messages(conn, _row(r, json_fields=("answers",))) for r in rows]
+
+
+def tickets_by_email(email: str) -> list[dict]:
+    """Все обращения студента/абитуриента по подтверждённой почте, свежие сверху."""
+    query = _TICKET_JOIN_DRAFT + " WHERE t.email = ? ORDER BY t.created_at DESC"
+    with _conn() as conn:
+        rows = conn.execute(query, (email,)).fetchall()
+        return [_attach_messages(conn, _row(r, json_fields=("answers",))) for r in rows]
+
+
+def ticket_counts() -> dict:
+    """Сколько обращений в каждом статусе — для /api/health."""
+    with _conn() as conn:
+        rows = conn.execute("SELECT status, COUNT(*) AS n FROM tickets GROUP BY status").fetchall()
+    return {row["status"]: row["n"] for row in rows}
 
 
 # --- Мелочи ------------------------------------------------------------------
