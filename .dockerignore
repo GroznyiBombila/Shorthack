@@ -1,0 +1,40 @@
+# Секреты и локальные данные — не должны попасть в build context вообще
+.env
+.env.local
+*.key
+*.pem
+var/
+
+# Git и служебное
+.git
+.gitignore
+.dockerignore
+
+# Файлы сборки/запуска сами по себе коду не нужны внутри образа
+Dockerfile
+docker-compose.yml
+run.sh
+deploy.sh
+DEPLOY-README-snippet.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Не нужны в рантайме контейнера
+tests/
+docs/
+team/
+README.md
+*.md
+
+# ide / os
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

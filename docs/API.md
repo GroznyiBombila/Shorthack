@@ -136,6 +136,60 @@
 - `mail_status`: `sent` — письмо ушло по SMTP; `mocked` — записано в `var/outbox/`.
 - Ошибки: `401 invalid_token`, `409 draft_not_ready`, `404 draft_not_found`.
 
+## 5a. Профиль
+
+Состав полей приходит с сервера — интерфейс его не зашивает.
+
+`GET /api/profile/fields?role=student` → 
+
+```json
+{ "fields": [
+  { "name": "institute", "label": "Институт", "type": "select", "required": true, "options": ["ИТКН", "ИНМиН"] },
+  { "name": "group",     "label": "Учебная группа", "type": "select", "required": true, "options": ["ББИ-26-6-1"] },
+  { "name": "subgroup",  "label": "Подгруппа", "type": "select", "required": false, "options": ["1", "2"] }
+] }
+```
+
+Для `teacher` — `department` (Кафедра, text) и `name` (Фамилия и инициалы, text).
+Для `applicant` — пустой список: профиль не нужен, форму не показываем.
+
+`GET /api/profile` с заголовком `Authorization: Bearer <token>` →
+`{ "role": "student", "filled": true, "values": { "institute": "ИТКН", "group": "ББИ-26-6-1", "subgroup": "1" } }`
+
+`filled: false` — профиль ещё не заполняли, показываем форму.
+
+`POST /api/profile` `{ "values": { ... } }` + токен → `{ "ok": true, "values": { ... } }`
+Ошибки: `401 invalid_token`, `400 invalid_field` (+ `details.field`).
+
+## 5b. Расписание
+
+`GET /api/schedule?date=2026-09-14` + токен. Группа и подгруппа берутся из профиля,
+преподавателю — по фамилии из профиля. Передавать их в запросе не нужно.
+
+```json
+{
+  "date": "2026-09-14",
+  "day": "Понедельник",
+  "week": "upper",
+  "group": "ББИ-26-6-1",
+  "lessons": [
+    {
+      "pair": 2, "time_start": "10:50", "time_end": "12:25",
+      "subject": "Введение в специальность", "kind": "lab",
+      "teacher": "Неворошкин В. А.", "room": "Л-812-УВЦ", "subgroup": null
+    }
+  ]
+}
+```
+
+- `kind`: `lecture` | `practice` | `lab` | `other`
+- `week`: `upper` — числитель, `lower` — знаменатель.
+- Пустой `lessons` — валидный ответ: в этот день занятий нет. Это не ошибка.
+- Ошибки: `401 invalid_token`, `409 profile_incomplete` (профиль не заполнен, группы нет),
+  `404 schedule_not_found` (нет файла для этого института).
+
+Языковая модель в этом эндпоинте не участвует вообще — только разбор таблицы.
+
 ## 6. Служебное
 
 `GET /api/health` → `{"status":"ok","mail_mode":"mock","llm":"ready","faq_items":42}`

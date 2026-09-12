@@ -1,0 +1,30 @@
+# Фиксируем имя проекта: иначе Compose берёт имя из каталога, а на сервере рядом
+# крутятся чужие проекты (automessage_*, btc_*, spectra_*, tl_world_bot) — их
+# контейнеры/тома/сети трогать нельзя. С name все наши ресурсы получают префикс
+# shorthack_ независимо от того, из какой директории и с какой -p запущен compose.
+name: shorthack
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shorthack_app
+    restart: unless-stopped
+    # .env лежит рядом с compose-файлом: локально — репозиторий, на сервере —
+    # отдельный файл, который deploy.sh НЕ перезаписывает (переживает передеплой).
+    env_file:
+      - .env
+    environment:
+      # В контейнере путь к данным всегда /data, что бы ни было в .env для локального запуска.
+      DATA_DIR: /data
+    ports:
+      # DEPLOY_PORT — публичный порт хоста. На проде это 8080 (80/443/8099 заняты
+      # чужими сервисами), локально при отсутствии переменной используем 8000.
+      - "${DEPLOY_PORT:-8000}:8000"
+    volumes:
+      - shorthack_data:/data
+
+volumes:
+  shorthack_data:
+    name: shorthack_data
