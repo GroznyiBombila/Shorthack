@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app import analyze as analyze_mod
-from app import auth, compose, config, faq, mailer, rules, router, storage
+from app import auth, compose, config, faq, limits, mailer, rules, router, routing, storage
 
 logging.basicConfig(level=config.LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -55,6 +55,7 @@ CATEGORY_RU = {
     "admission": "Поступление", "study": "Учёба", "campus_life": "Студенческая жизнь",
     "account": "Доступы", "documents": "Документы", "other": "Прочее",
 }
+ROLE_RU = {"applicant": "поступающий", "student": "студент", "teacher": "преподаватель"}
 
 
 # --- Общее -------------------------------------------------------------------
@@ -129,6 +130,20 @@ def _relevant(found: list[dict]) -> list[dict]:
     return [f for f in found if f.get("score", 0.0) >= cutoff][:2]
 
 
+def _guard(request: Request) -> None:
+    """Заслон на эндпоинты, которые тратят квоту модели.
+
+    Сервис выложен наружу, а лимит Groq общий на всю команду: без ограничителя
+    любой, кто узнает адрес, выжигает суточную квоту и защита проекта встаёт.
+    """
+    key = limits.client_key(request.headers.get("x-forwarded-for"),
+                            request.client.host if request.client else None)
+    try:
+        limits.check(key)
+    except limits.RateLimited as exc:
+        raise fail(429, "rate_limited", str(exc), retry_after_sec=exc.retry_after_sec)
+
+
 # --- 1. Разбор обращения -----------------------------------------------------
 
 class AskIn(BaseModel):
@@ -138,7 +153,8 @@ class AskIn(BaseModel):
 
 
 @app.post("/api/ask")
-def ask(body: AskIn) -> dict:
+def ask(body: AskIn, request: Request) -> dict:
+    _guard(request)
     if body.role not in ROLES:
         raise fail(400, "invalid_role", "Неизвестная роль", role=body.role)
 
@@ -210,7 +226,8 @@ class DraftIn(BaseModel):
 
 
 @app.post("/api/ticket/draft")
-def ticket_draft(body: DraftIn) -> dict:
+def ticket_draft(body: DraftIn, request: Request) -> dict:
+    _guard(request)
     req = storage.get_request(body.request_id)
     if not req:
         raise fail(404, "request_not_found", "Обращение не найдено")
@@ -225,7 +242,11 @@ def ticket_draft(body: DraftIn) -> dict:
 
     drafted = compose.ticket(role=req["role"], category=category, priority=priority,
                              questions=questions, known=known, original=req["text"])
-    subject = _subject(category, priority, drafted["subject_hint"])
+    # Институт — как и приоритет/адресат, решение кода: если студент уже назвал
+    # институт (ключ "институт" из REQUIRED_FIELDS в app/rules.py), маршрутизируем
+    # письмо не в общий учебный отдел, а в конкретный деканат.
+    institute = known.get("институт")
+    subject = _subject(category, priority, drafted["subject_hint"], institute=institute)
     ready = not missing
 
     if body.draft_id and storage.get_draft(body.draft_id):
@@ -243,14 +264,35 @@ def ticket_draft(body: DraftIn) -> dict:
             "ready": ready}
 
 
-def _subject(category: str, priority: str, gist: str, ticket_id: str | None = None) -> str:
-    head = f"[MISIS-SUPPORT] {CATEGORY_RU.get(category, 'Прочее')} / {priority}"
-    return f"{head} / {ticket_id} — {gist}" if ticket_id else f"{head} / {gist}"
+# Тема — контракт для сотрудника, который разбирает почтовый ящик: адресат
+# первым, чтобы фильтром/глазом сразу понять, кому пересылать письмо.
+_MAX_SUBJECT_LEN = 200
+
+
+def _subject(category: str, priority: str, gist: str, ticket_id: str | None = None,
+            institute: str | None = None) -> str:
+    to = routing.recipient(category, institute)
+    head = f"[MISIS-SUPPORT] {to} / {CATEGORY_RU.get(category, 'Прочее')} / {priority}"
+    prefix = f"{head} / {ticket_id} — " if ticket_id else f"{head} / "
+
+    # 200 символов режем за счёт сути, а не служебной части: адресат, категория,
+    # приоритет и номер обращения нужны сотруднику в любом случае, а суть и так
+    # дублируется в теле письма.
+    budget = _MAX_SUBJECT_LEN - len(prefix)
+    gist = gist.strip()
+    if budget <= 0:
+        return prefix[:_MAX_SUBJECT_LEN]
+    if len(gist) > budget:
+        gist = (gist[:budget - 1].rstrip() + "…") if budget > 1 else "…"
+    return prefix + gist
 
 
 # В черновике тема уже собрана по формату, а при отправке её пересобирают с номером
 # обращения. Без снятия старого заголовка тема обрастает префиксом дважды.
-_SUBJECT_RE = re.compile(r"^\[MISIS-SUPPORT\][^/]*/[^/]*/\s*(?:MISIS-\d{4}-\d+\s+—\s*)?(.*)$")
+# Сегментов теперь три (адресат / категория / приоритет) перед сутью — было два.
+_SUBJECT_RE = re.compile(
+    r"^\[MISIS-SUPPORT\][^/]*/[^/]*/[^/]*/\s*(?:MISIS-\d{4}-\d+\s+—\s*)?(.*)$"
+)
 
 
 def _gist(subject: str) -> str:
@@ -327,19 +369,47 @@ def submit(body: SubmitIn) -> dict:
     if not draft["ready"]:
         raise fail(409, "draft_not_ready", "Не хватает данных для обращения")
 
+    # Повторная отправка того же черновика возвращает уже созданное обращение.
+    # Иначе двойной клик на кнопке — это два письма в поддержку с разными номерами,
+    # а заодно дешёвый способ завалить ящик с чужим draft_id.
+    existing = storage.ticket_by_draft(body.draft_id)
+    if existing:
+        return {"ticket_id": existing["ticket_id"], "subject": existing["subject"],
+                "sent_to": existing["sent_to"], "mail_status": existing["mail_status"],
+                "anonymous": bool(existing["anonymous"]), "duplicate": True}
+
     email = None
     if not body.anonymous:
         email = _token_email(f"Bearer {body.token or ''}")["email"]
 
-    ticket_id = storage.next_ticket_id()
-    subject = _subject(draft["category"], draft["priority"],
-                       _gist(draft["subject"]), ticket_id)
-    header = (f"Заявитель: {email}" if email else
-              "Анонимное обращение — обратная связь невозможна")
-    text = f"{header}\nНомер обращения: {ticket_id}\n\n{draft['body']}"
+    # Институт нужен и для темы, и для тела — берём из уже собранных ответов
+    # черновика (тот же ключ "институт", что и при сборке черновика).
+    institute = (draft.get("answers") or {}).get("институт")
+    req = storage.get_request(draft["request_id"])
+    role = (req or {}).get("role")
 
+    ticket_id = storage.next_ticket_id()
+    to_whom = routing.recipient(draft["category"], institute)
+    subject = _subject(draft["category"], draft["priority"],
+                       _gist(draft["subject"]), ticket_id, institute=institute)
+
+    # Блок для сотрудника, который разбирает ящик: кому переслать, номер, кто
+    # спрашивает и приоритет — раньше сотрудник узнавал это, только прочитав
+    # письмо целиком; теперь достаточно первых четырёх строк.
+    who = (f"{ROLE_RU.get(role, role or 'роль не определена')}, {email}" if email
+           else "анонимное — ответить невозможно")
+    header_lines = [
+        f"Кому: {to_whom}",
+        f"Номер обращения: {ticket_id}",
+        f"Приоритет: {draft['priority']}",
+        f"Заявитель: {who}",
+    ]
+    text = "\n".join(header_lines) + "\n\n" + draft["body"]
+
+    # Ящик пишет сам себе (см. app/mailer.py и app/routing.py): реального адреса
+    # деканата у нас нет, поэтому SUPPORT_EMAIL == MAIL_FROM == SMTP_USER.
     sent_to = config.SUPPORT_EMAIL or "support@misis.ru"
-    result = mailer.send(sent_to, subject, text)
+    result = mailer.send(sent_to, subject, text, reply_to=email)
     storage.save_ticket(ticket_id=ticket_id, draft_id=body.draft_id, email=email,
                         anonymous=body.anonymous, subject=subject, body=text,
                         sent_to=sent_to, mail_status=result["status"])

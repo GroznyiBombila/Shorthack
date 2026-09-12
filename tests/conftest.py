@@ -44,6 +44,11 @@ def client(api_env, monkeypatch):
     # Единственный выход в сеть у приложения — httpx.post в llm_client.
     monkeypatch.setattr(httpx, "post", _refuse)
 
+    # Ограничитель считает обращения в памяти процесса: без сброса тесты делят
+    # один счётчик на всех и начиная с одиннадцатого запроса получают 429.
+    from app import limits
+    limits.reset()
+
     # Импорт только после подмены путей: app.api на импорте создаёт схему базы.
     from app.api import app
 

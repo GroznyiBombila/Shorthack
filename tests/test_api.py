@@ -213,6 +213,90 @@ def test_submit_unknown_draft_returns_404(client):
     assert response.json()["error"]["code"] == "draft_not_found"
 
 
+# --- Маршрутизация адресата и почта заявки -----------------------------------
+# Схема "ящик пишет сам себе" (см. app/mailer.py, app/routing.py): реального
+# адреса деканата нет, поэтому адресат по сути — в теме письма, а Reply-To —
+# единственный работающий канал обратной связи с заявителем.
+
+def _last_outbox_mail(outbox_dir):
+    import glob
+    from email import policy
+    from email.parser import BytesParser
+
+    files = sorted(glob.glob(str(outbox_dir / "*.eml")))
+    assert files, "ожидалось письмо в outbox"
+    with open(files[-1], "rb") as f:
+        return BytesParser(policy=policy.default).parse(f)
+
+
+def test_submit_confirmed_email_sets_reply_to(client, monkeypatch, api_env):
+    import re
+
+    draft_id = ready_draft(client, monkeypatch)
+
+    code_request = client.post("/api/auth/request-code", json={"email": "student@misis.ru"})
+    assert code_request.status_code == 200, code_request.text
+    code_mail = _last_outbox_mail(api_env / "outbox")
+    body = code_mail.get_body(preferencelist=("plain",)).get_content()
+    code = re.search(r"код подтверждения:\s*(\d{6})", body, re.IGNORECASE).group(1)
+
+    verify = client.post("/api/auth/verify", json={"email": "student@misis.ru", "code": code})
+    assert verify.status_code == 200, verify.text
+    token = verify.json()["token"]
+
+    submit = client.post("/api/ticket/submit", json={
+        "draft_id": draft_id, "token": token, "anonymous": False})
+    assert submit.status_code == 200, submit.text
+
+    ticket_mail = _last_outbox_mail(api_env / "outbox")
+    assert ticket_mail["Reply-To"] == "student@misis.ru"
+
+
+def test_submit_anonymous_has_no_reply_to(client, monkeypatch, api_env):
+    draft_id = ready_draft(client, monkeypatch)
+
+    submit = client.post("/api/ticket/submit", json={"draft_id": draft_id, "anonymous": True})
+    assert submit.status_code == 200, submit.text
+
+    ticket_mail = _last_outbox_mail(api_env / "outbox")
+    assert ticket_mail["Reply-To"] is None
+
+
+def test_subject_contains_recipient_and_stays_within_200_chars_even_with_huge_gist():
+    # Юнит-уровень: длинный "хвост" темы (суть) должен резаться, а не служебная
+    # часть (адресат / категория / приоритет / номер обращения).
+    from app.api import _subject
+
+    huge_gist = "очень длинный вопрос про справку " * 20
+    subject = _subject("documents", "P3", huge_gist, ticket_id="MISIS-2026-0007")
+
+    assert len(subject) <= 200
+    assert subject.count("Учебный отдел") == 1
+    assert subject.count("MISIS-2026-0007") == 1
+    assert subject.startswith("[MISIS-SUPPORT] Учебный отдел / Документы / P3 / MISIS-2026-0007 — ")
+
+
+def test_subject_routes_study_category_to_dean_office_when_institute_known():
+    from app.api import _subject
+
+    subject = _subject("study", "P3", "не пускает в личный кабинет", institute="ИТКН")
+
+    assert "Деканат ИТКН" in subject
+
+
+def test_gist_strips_new_four_segment_prefix_without_duplicating_it():
+    # Регресс формата: адресат добавил четвёртый сегмент в тему, _gist обязан
+    # снимать его целиком, иначе при пересборке темы префикс наклеится дважды.
+    from app.api import _gist, _subject
+
+    draft_subject = _subject("account", "P2", "не могу войти в личный кабинет")
+    resubmitted = _subject("account", "P2", _gist(draft_subject), ticket_id="MISIS-2026-0001")
+
+    assert resubmitted.count("[MISIS-SUPPORT]") == 1
+    assert resubmitted.count("MISIS-2026-0001") == 1
+    assert resubmitted.endswith("не могу войти в личный кабинет")
+
+
 # --- Профиль и расписание ----------------------------------------------------
 
 @pytest.mark.parametrize("path", ["/api/profile", "/api/schedule?date=2026-09-14"])

@@ -184,6 +184,16 @@ def get_ticket(ticket_id: str) -> dict | None:
     return _row(row)
 
 
+def ticket_by_draft(draft_id: str) -> dict | None:
+    """Уже отправленное обращение по черновику: защита от повторной отправки."""
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM tickets WHERE draft_id = ? ORDER BY created_at LIMIT 1",
+            (draft_id,),
+        ).fetchone()
+    return _row(row)
+
+
 def recent_tickets(limit: int = 20) -> list[dict]:
     with _conn() as conn:
         rows = conn.execute(

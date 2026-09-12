@@ -35,8 +35,17 @@ GROQ_MODEL_FALLBACK: str = os.getenv("GROQ_MODEL_FALLBACK", "qwen/qwen3.8-27b")
 LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "30"))
 
 # --- Почта ---
+# SMTP_USER (логин на сервере), MAIL_FROM (заголовок From) и SUPPORT_EMAIL
+# (куда уходят заявки) — это ОДИН И ТОТ ЖЕ корпоративный ящик: согласованного
+# адреса деканата у нас нет, поэтому ящик пишет заявки сам себе, а реальный
+# адресат по сути — в теме письма (см. app/routing.py и app/mailer.py).
+# SMTP_USER/SMTP_PASSWORD читает только app/mailer.py (нужны исключительно
+# для логина на SMTP-сервере), здесь читать их незачем.
 MAIL_MODE: str = os.getenv("MAIL_MODE", "mock")
-SUPPORT_EMAIL: str = os.getenv("SUPPORT_EMAIL", "")
+MAIL_FROM: str = os.getenv("MAIL_FROM", "")
+# Явно не заданный SUPPORT_EMAIL по умолчанию равен MAIL_FROM — тот же ящик,
+# другого адресата "по умолчанию" в этой схеме и не может быть.
+SUPPORT_EMAIL: str = os.getenv("SUPPORT_EMAIL", "") or MAIL_FROM
 
 # --- Расписание ---
 SEMESTER_START: str = os.getenv("SEMESTER_START", "2026-09-01")
