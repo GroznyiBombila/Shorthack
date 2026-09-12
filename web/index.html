@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Помощник поддержки МИСИС</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-mark" id="btnLogoHome" role="button" tabindex="0" title="На главную">
+        <!-- SVG reproducing the exact MISIS rebranded mark provided in prompt -->
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Логотип МИСИС">
+          <defs>
+            <!-- Top-Left Outer Arc Gradient: vibrant cyan to deep royal blue -->
+            <linearGradient id="misisGradOuterTL" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#00c8f8"/>
+              <stop offset="55%" stop-color="#0072ce"/>
+              <stop offset="100%" stop-color="#004de6"/>
+            </linearGradient>
+            <!-- Bottom-Right Outer Arc Gradient: deep royal blue to vibrant cyan -->
+            <linearGradient id="misisGradOuterBR" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#004de6"/>
+              <stop offset="45%" stop-color="#0072ce"/>
+              <stop offset="100%" stop-color="#00c8f8"/>
+            </linearGradient>
+            <!-- Cyan Portal Core Gradient -->
+            <linearGradient id="misisGradCoreCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="60%" stop-color="#0099f7"/>
+              <stop offset="100%" stop-color="#0066eb"/>
+            </linearGradient>
+            <!-- Blue Portal Core Gradient -->
+            <linearGradient id="misisGradCoreBlue" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0052d4"/>
+              <stop offset="50%" stop-color="#0044b8"/>
+              <stop offset="100%" stop-color="#002b66"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Top-Left Outer Arc (Quadrant 2) -->
+          <path d="M 50 0 A 50 50 0 0 0 0 50 L 13.5 50 A 36.5 36.5 0 0 1 50 13.5 Z" fill="url(#misisGradOuterTL)"/>
+
+          <!-- Bottom-Right Outer Arc (Quadrant 4) -->
+          <path d="M 50 100 A 50 50 0 0 0 100 50 L 86.5 50 A 36.5 36.5 0 0 1 50 86.5 Z" fill="url(#misisGradOuterBR)"/>
+
+          <!-- Right Cyan Core (Quadrants 1 and 4 inner) -->
+          <path d="M 50 13.5 A 36.5 36.5 0 0 1 86.5 50 L 74.5 50 A 24.5 24.5 0 0 1 50 74.5 L 50 62.5 A 12.5 12.5 0 0 0 50 37.5 L 50 13.5 Z" fill="url(#misisGradCoreCyan)"/>
+
+          <!-- Left Blue Core (Quadrants 3 and 2 inner) -->
+          <path d="M 50 86.5 A 36.5 36.5 0 0 1 13.5 50 L 25.5 50 A 24.5 24.5 0 0 1 50 25.5 L 50 37.5 A 12.5 12.5 0 0 0 50 62.5 L 50 86.5 Z" fill="url(#misisGradCoreBlue)"/>
+        </svg>
+        <span class="brand-title">МИСИС Поддержка</span>
+      </div>
+
+      <div class="header-user-status">
+        <button type="button" class="btn-text" id="btnMyTicketsNav">Мои обращения</button>
+        <span class="badge-role" id="hdrRoleBadge">Студент</span>
+        <span class="badge-verified" id="hdrVerifiedBadge" style="display:none;" title="Почта подтверждена">✓ email</span>
+        <button type="button" class="btn-text" id="hdrLogoutBtn" style="display:none;">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- Screen 1: Main screen with role slider -->
+    <section id="screen-main" class="screen-view is-active" aria-labelledby="mainTitle">
+      <div style="padding: 24px 0 16px;">
+        <h1 id="mainTitle" class="screen-title">Помощник поддержки МИСИС</h1>
+        <p class="screen-desc">
+          Отвечу на вопрос про поступление, учёбу и студенческую жизнь. Если ответа не найдётся — помогу составить обращение.
+        </p>
+
+        <div style="margin-bottom:10px;">
+          <label class="form-label" style="margin-bottom:8px; display:block;">Кто вы?</label>
+          <div class="role-slider" role="radiogroup" aria-label="Выбор роли">
+            <button type="button" class="role-option" data-role="applicant" role="radio" aria-checked="false">Поступающий</button>
+            <button type="button" class="role-option is-selected" data-role="student" role="radio" aria-checked="true">Студент</button>
+            <button type="button" class="role-option" data-role="teacher" role="radio" aria-checked="false">Преподаватель</button>
+          </div>
+        </div>
+
+        <button type="button" id="btnStartChat" class="btn btn-primary btn-block">Задать вопрос</button>
+      </div>
+    </section>
+
+    <!-- Screen 2: Chat screen with feed and input -->
+    <section id="screen-chat" class="screen-view" aria-label="Чат с поддержкой">
+      <div class="chat-layout">
+        <nav class="chat-nav-tabs" aria-label="Режимы">
+          <button type="button" class="tab-btn is-active" id="tabAskBtn">Задать вопрос</button>
+          <button type="button" class="tab-btn" id="tabTicketBtn">Создать обращение</button>
+        </nav>
+
+        <div class="chat-feed" id="chatFeed" role="log" aria-live="polite"></div>
+
+        <!-- Quick suggestion buttons for current role -->
+        <div class="quick-actions-bar" id="roleSuggestionsBar" aria-label="Быстрые вопросы"></div>
+
+        <!-- Quick actions row for verified student/teacher -->
+        <div class="quick-actions-bar" id="scheduleQuickBar" style="display:none;">
+          <button type="button" class="pill-btn" id="btnSchedToday">📅 Расписание на сегодня</button>
+          <button type="button" class="pill-btn" id="btnSchedTomorrow">📅 На завтра</button>
+          <label class="pill-btn" style="position:relative; cursor:pointer;">
+            <span>🗓️ Выбрать день</span>
+            <input type="date" id="dateSchedPicker" style="position:absolute; opacity:0; width:100%; left:0; top:0; height:100%; cursor:pointer;">
+          </label>
+        </div>
+
+        <form id="chatForm" onsubmit="return false;" style="margin-top:auto;">
+          <div class="chat-input-wrapper">
+            <textarea id="chatInput" class="chat-textarea" placeholder="Ваш вопрос своими словами..." rows="1" aria-label="Сообщение"></textarea>
+            <button type="button" id="chatSendBtn" class="chat-send-btn" aria-label="Отправить вопрос" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <div class="chat-hint-meta">
+            <span>Enter — отправить, Shift+Enter — перенос строки</span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 3: Email input with role-aware labels and hints -->
+    <section id="screen-verify-email" class="screen-view" aria-labelledby="verifyEmailTitle">
+      <div class="verify-box">
+        <h1 id="verifyEmailTitle" class="screen-title">Подтверждение почты</h1>
+        <p class="screen-desc">
+          Чтобы создать официальное обращение и увидеть ответ в разделе «Мои обращения», подтвердите ваш почтовый адрес.
+        </p>
+
+        <form id="emailForm" onsubmit="return false;">
+          <div class="form-group">
+            <label for="inputEmail" class="form-label" id="emailFieldLabel">Адрес электронной почты <span class="req">*</span></label>
+            <input type="email" id="inputEmail" class="input-field" placeholder="ivanov@edu.misis.ru" required>
+            <div class="input-hint" id="emailHintText">
+              Студентам и преподавателям — корпоративная почта @edu.misis.ru или @misis.ru, поступающим — любая личная.
+            </div>
+          </div>
+
+          <div id="emailStatusBox" class="status-banner info" style="display:none;"></div>
+
+          <button type="submit" id="btnSendCode" class="btn btn-primary btn-block">Получить код</button>
+          <button type="button" class="btn btn-secondary btn-block" style="margin-top:8px;" id="btnCancelVerify">Вернуться в чат</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 4: 6-digit verification code screen -->
+    <section id="screen-verify-code" class="screen-view" aria-labelledby="verifyCodeTitle">
+      <div class="verify-box">
+        <h1 id="verifyCodeTitle" class="screen-title">Введите код</h1>
+        <p class="screen-desc">
+          Мы отправили 6-значный код на <strong id="verifyCodeTargetEmail">user@misis.ru</strong>.
+        </p>
+
+        <div id="demoCodeBanner" class="demo-code-banner" style="display:none;"></div>
+
+        <form id="codeForm" onsubmit="return false;">
+          <div class="form-group">
+            <input type="text" id="inputVerifyCode" class="input-field code-input-lg" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
+          </div>
+
+          <div id="codeStatusBox" class="status-banner info" style="display:none;"></div>
+
+          <button type="submit" id="btnSubmitCode" class="btn btn-primary btn-block" style="margin-top:16px;">Подтвердить код</button>
+          <button type="button" id="btnResendCode" class="btn btn-secondary btn-block" style="margin-top:8px;" disabled>
+            Отправить код повторно <span id="codeTimerText">(0:45)</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 5: Dynamic Profile screen -->
+    <section id="screen-profile" class="screen-view" aria-labelledby="profileTitle">
+      <div class="verify-box" style="max-width:540px;">
+        <h1 id="profileTitle" class="screen-title">Расскажите о себе</h1>
+        <p class="screen-desc">Спрошу один раз — это нужно, чтобы показывать ваше точное расписание и адресовать вопросы в деканат.</p>
+
+        <div id="profileNotReadyBox" class="not-ready-box" style="display:none;">
+          Раздел ещё не подключён. Можно продолжить без профиля — расписание и автозаполнение будут недоступны.
+          <div style="margin-top:12px;">
+            <button type="button" id="btnProfileNotReadyContinue" class="btn btn-secondary">Продолжить без профиля</button>
+          </div>
+        </div>
+
+        <form id="profileForm" onsubmit="return false;">
+          <div id="profileDynamicFields"></div>
+
+          <div id="profileStatusBox" class="status-banner error" style="display:none;"></div>
+
+          <button type="submit" id="btnSaveProfile" class="btn btn-primary btn-block" style="margin-top:16px;">Сохранить и продолжить</button>
+
+          <div style="margin-top:12px; text-align:center;">
+            <button type="button" id="btnSkipProfile" class="btn-text">Пропустить</button>
+            <p style="font-size:13px; color:var(--text-dim); margin-top:4px;">
+              Если пропустить, функции расписания и автозаполнения будут недоступны.
+            </p>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 6: Clarifications & Ticket Preview -->
+    <section id="screen-ticket-preview" class="screen-view" aria-labelledby="ticketDraftTitle">
+      <div style="max-width:680px; margin:0 auto; width:100%;">
+        <h1 id="ticketDraftTitle" class="screen-title">Оформление обращения</h1>
+        <p class="screen-desc">Проверьте данные перед отправкой. Обращение уйдёт профильному сотруднику МИСИС во внутреннюю очередь поддержки.</p>
+
+        <div id="draftLoadingBox" class="state-box" style="display:none;">Готовлю черновик обращения…</div>
+        <div id="draftErrorBox" class="state-box state-error" style="display:none;"></div>
+
+        <div id="clarifyQuestionsBlock" class="clarify-card" style="display:none;">
+          <h3 style="font-size:18px; margin-bottom:8px; color:var(--brand);">Чтобы оформить обращение, уточните:</h3>
+          <div id="clarifyInputsContainer"></div>
+          <button type="button" id="btnSubmitClarifications" class="btn btn-primary" style="margin-top:12px;">Продолжить</button>
+        </div>
+
+        <div id="ticketReadyBlock" class="card" style="display:none;">
+          <h3 style="font-size:20px; font-weight:700; color:var(--brand); margin-bottom:12px;">Предпросмотр обращения</h3>
+
+          <div class="ticket-preview">
+            <div class="ticket-preview-row">
+              <div class="ticket-preview-label">Тема</div>
+              <div class="ticket-preview-val" id="previewSubject">—</div>
+            </div>
+            <div class="ticket-preview-row">
+              <div class="ticket-preview-label">От кого</div>
+              <div class="ticket-preview-val" id="previewSender">—</div>
+            </div>
+            <div class="ticket-preview-row">
+              <div class="ticket-preview-label">Текст обращения</div>
+              <div class="ticket-preview-val" id="previewText" style="background:#fff; padding:12px; border-radius:8px; border:1px solid var(--line); margin-top:4px;">—</div>
+            </div>
+          </div>
+
+          <div id="submitStatusBox" class="status-banner error" style="display:none;"></div>
+
+          <div style="display:flex; gap:12px; margin-top:16px;">
+            <button type="button" id="btnConfirmSendTicket" class="btn btn-primary" style="flex:1;">Отправить обращение</button>
+            <button type="button" id="btnEditTicket" class="btn btn-secondary">Исправить</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 7: Ticket Sent confirmation -->
+    <section id="screen-ticket-sent" class="screen-view" aria-labelledby="sentTitle">
+      <div class="success-hero">
+        <div style="width:64px; height:64px; border-radius:50%; background:var(--ok-soft); color:var(--ok); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:32px;">
+          ✓
+        </div>
+        <h1 id="sentTitle" class="screen-title">Обращение отправлено</h1>
+        <p class="screen-desc" style="margin-bottom:8px;">Ваш вопрос зарегистрирован в службе поддержки университета.</p>
+
+        <div>
+          <div style="font-size:14px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Номер обращения</div>
+          <div class="ticket-num-badge" id="sentTicketId">MISIS-2026-0007</div>
+        </div>
+
+        <div class="card" style="text-align:left; margin:20px 0;">
+          <div style="font-size:15px; margin-bottom:6px;"><strong>Куда направлено:</strong> <span id="sentTargetDept">Служба поддержки МИСИС</span></div>
+          <div style="font-size:15px;"><strong>Что дальше:</strong> Ответ появится здесь, в разделе «Мои обращения». Письмом он не приходит — сотрудник отвечает во внутренней очереди.</div>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;">
+          <button type="button" id="btnOpenTicketAfterSent" class="btn btn-secondary">Открыть «Мои обращения»</button>
+          <button type="button" id="btnBackToChatAfterSent" class="btn btn-primary">Задать ещё вопрос</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 8: "Мои обращения" — экрана не было в макете, добавлен при отключении
+         почты: теперь это единственное место, где виден ответ сотрудника. -->
+    <section id="screen-my-tickets" class="screen-view" aria-labelledby="myTicketsTitle">
+      <div style="max-width:720px; margin:0 auto; width:100%;">
+
+        <!-- Подэкран списка -->
+        <div id="myTicketsListView">
+          <div class="tickets-toolbar">
+            <div>
+              <h1 id="myTicketsTitle" class="screen-title" style="margin-bottom:4px;">Мои обращения</h1>
+              <p class="screen-desc" style="margin-bottom:0;">Ответ сотрудника появляется здесь — почтой он не приходит.</p>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btnRefreshMyTickets">Обновить</button>
+          </div>
+
+          <div class="tickets-search" style="margin-top:20px;">
+            <label class="form-label" for="ticketSearchInput" style="margin-bottom:8px; display:block;">Найти по номеру обращения</label>
+            <div class="tickets-search-row">
+              <input type="text" id="ticketSearchInput" class="input-field" placeholder="MISIS-2026-0007">
+              <button type="button" class="btn btn-secondary" id="btnTicketSearch">Найти</button>
+            </div>
+            <div class="input-hint" style="margin-top:6px;">
+              Анонимное обращение в списке не отображается — оно ни к кому не привязано. Найти его можно только по этому номеру.
+            </div>
+            <div id="ticketSearchStatus" class="state-box state-error" style="display:none; margin-top:10px;"></div>
+          </div>
+
+          <div id="myTicketsListBox"></div>
+        </div>
+
+        <!-- Подэкран переписки по одному обращению -->
+        <div id="myTicketsDetailView" style="display:none;">
+          <div class="ticket-detail-header">
+            <button type="button" class="btn-text" id="btnBackToTicketsList">← К списку</button>
+            <div class="ticket-detail-header-actions">
+              <button type="button" class="btn btn-secondary" id="btnRefreshTicketDetail">Обновить</button>
+            </div>
+          </div>
+          <div id="ticketDetailBox"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <template id="tpl-user-msg">
+    <div class="msg-bubble msg-bubble-user">
+      <div class="user-text"></div>
+    </div>
+  </template>
+
+  <template id="tpl-bot-container">
+    <div class="msg-bubble msg-bubble-bot">
+      <div class="bot-answer-group"></div>
+    </div>
+  </template>
+
+  <template id="tpl-answer-card">
+    <div class="answer-card">
+      <h3 class="answer-card-header"></h3>
+      <div class="answer-card-body"></div>
+      <div class="answer-sources">
+        <span>Источники:</span>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-notfound-card">
+    <div class="not-found-card">
+      <h4 class="not-found-title">Вопрос</h4>
+      <p>Точного ответа в базе не нашёл.</p>
+      <button type="button" class="btn btn-primary btn-create-ticket-trigger" style="height:40px; font-size:15px; padding:0 14px;">
+        Создать обращение
+      </button>
+    </div>
+  </template>
+
+  <template id="tpl-error-msg">
+    <div class="card" style="border-color:var(--accent); background:var(--accent-soft); width:100%;">
+      <div style="color:var(--accent); font-weight:700; margin-bottom:4px;" class="err-title">Не удалось связаться с помощником</div>
+      <div style="font-size:15px; color:var(--text); margin-bottom:8px;" class="err-desc">Проверьте соединение или повторите отправку.</div>
+      <button type="button" class="btn btn-secondary btn-retry-send" style="height:36px; font-size:14px; background:#fff;">Повторить</button>
+    </div>
+  </template>
+
+  <template id="tpl-schedule-card">
+    <div class="schedule-container">
+      <div class="schedule-header">
+        <span class="sched-date-title">Понедельник, 14 сентября</span>
+        <span class="sched-week-title">верхняя неделя</span>
+      </div>
+      <div class="schedule-lessons-list"></div>
+    </div>
+  </template>
+
+  <template id="tpl-schedule-item">
+    <div class="schedule-item">
+      <div class="time-slot">
+        <div class="time-hours">10:50–12:25</div>
+        <div class="time-num">2 пара</div>
+      </div>
+      <div class="lesson-meta">
+        <div class="lesson-title-row">
+          <span class="lesson-title">Название дисциплины</span>
+          <span class="badge-lesson-kind">лекция</span>
+        </div>
+        <div class="lesson-sub">
+          <span class="teacher-name">Иванов И. И.</span> · <span class="room-num">Б-402</span>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
