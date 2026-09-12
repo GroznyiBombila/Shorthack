@@ -1,2 +1,2160 @@
 Сюда кладём всё некодовое: макеты, скриншоты, слайды, черновики, заметки.
 Файл можно удалить, как только появится что-то настоящее.
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Помощник поддержки МИСИС</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f5f7fb;
+      --surface-hover: #eaf0fa;
+      --line: #dde3ee;
+      --text: #101828;
+      --text-dim: #5a6474;
+      --brand: #0b2c68;
+      --brand-hover: #143a82;
+      --brand-light: #e8f0fe;
+      --brand-cyan: #00a4e4;
+      --accent: #e4002b;
+      --accent-soft: #fde8eb;
+      --ok: #1a7f4b;
+      --ok-soft: #eaf6ef;
+      --warn: #b26a00;
+      --warn-soft: #fef4e6;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --gap: 16px;
+      --font-stack: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-stack);
+      font-size: 17px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--brand-cyan) !important;
+      outline-offset: 2px !important;
+    }
+
+    .app-header {
+      height: 56px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+    }
+
+    .header-container {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--brand);
+      cursor: pointer;
+    }
+
+    .brand-mark svg {
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--brand);
+      white-space: nowrap;
+    }
+
+    .header-user-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .badge-role {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: var(--brand-light);
+      color: var(--brand);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: var(--ok-soft);
+      color: var(--ok);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-text {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .btn-text:hover {
+      color: var(--accent);
+      background: var(--surface);
+    }
+
+    .app-main {
+      flex: 1;
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 24px 16px 36px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .screen-view {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      animation: fadeIn 120ms ease;
+    }
+
+    .screen-view.is-active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1.screen-title {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--brand);
+      margin-bottom: 8px;
+    }
+
+    p.screen-desc {
+      font-size: 17px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 48px;
+      padding: 0 20px;
+      border-radius: var(--radius);
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.15s, border-color 0.15s;
+      min-width: 48px;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #ffffff;
+      border-color: var(--brand);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--brand-hover);
+    }
+    .btn-primary:disabled {
+      background: #a0aec0;
+      border-color: #a0aec0;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--brand);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface);
+      border-color: var(--brand);
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .form-label .req {
+      color: var(--accent);
+      margin-left: 2px;
+    }
+
+    .input-field {
+      height: 48px;
+      width: 100%;
+      padding: 0 14px;
+      font-size: 17px;
+      font-family: inherit;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #ffffff;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+
+    select.input-field {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235a6474' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5l-5-5h10l-5 5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+
+    .input-field:focus {
+      border-color: var(--brand);
+    }
+
+    .input-hint {
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+
+    .role-slider {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      padding: 6px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      gap: 6px;
+    }
+
+    .role-option {
+      flex: 1;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text);
+      border: none;
+      background: transparent;
+      transition: all 0.12s ease;
+      text-align: center;
+      padding: 0 8px;
+    }
+
+    .role-option.is-selected {
+      background: var(--brand);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(11, 44, 104, 0.2);
+    }
+
+    .chat-layout {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 116px);
+      min-height: 520px;
+    }
+
+    .chat-nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: 1px solid transparent;
+      padding: 8px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-dim);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .tab-btn.is-active {
+      color: var(--brand);
+      background: var(--brand-light);
+      border-color: var(--line);
+    }
+
+    .chat-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .msg-bubble {
+      max-width: 88%;
+      animation: fadeIn 120ms ease;
+    }
+
+    .msg-bubble-user {
+      align-self: flex-end;
+      background: var(--brand);
+      color: #ffffff;
+      padding: 12px 18px;
+      border-radius: var(--radius) var(--radius) 2px var(--radius);
+      font-size: 17px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .msg-bubble-bot {
+      align-self: flex-start;
+      width: 100%;
+      max-width: 95%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bot-answer-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .answer-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .answer-card-header {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--brand);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 10px;
+    }
+
+    .answer-card-body {
+      font-size: 17px;
+      line-height: 1.5;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .answer-sources {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--line);
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .answer-source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--brand);
+      font-weight: 600;
+      text-decoration: none;
+      margin-top: 4px;
+    }
+    .answer-source-link:hover {
+      text-decoration: underline;
+    }
+
+    .not-found-card {
+      background: #ffffff;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .not-found-card h4 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .not-found-card p {
+      font-size: 16px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+
+    .quick-actions-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 0;
+      align-items: center;
+    }
+
+    .pill-btn {
+      height: 38px;
+      padding: 0 14px;
+      font-size: 14px;
+      font-weight: 600;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      color: var(--brand);
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill-btn:hover {
+      background: var(--brand-light);
+      border-color: var(--brand-cyan);
+    }
+
+    .chat-input-wrapper {
+      position: relative;
+      margin-top: 6px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius);
+      padding: 6px 10px 6px 14px;
+      transition: border-color 0.15s;
+    }
+
+    .chat-input-wrapper:focus-within {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px rgba(11, 44, 104, 0.12);
+    }
+
+    .chat-textarea {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+      font-size: 16px;
+      line-height: 1.4;
+      max-height: 130px;
+      min-height: 36px;
+      color: var(--text);
+      padding: 6px 0;
+    }
+
+    .chat-send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-sm);
+      background: var(--brand);
+      border: none;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .chat-send-btn:hover:not(:disabled) {
+      background: var(--brand-hover);
+    }
+    .chat-send-btn:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+    .chat-hint-meta {
+      font-size: 13px;
+      color: var(--text-dim);
+      padding: 4px 2px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .typing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      font-size: 14px;
+      color: var(--brand);
+      font-weight: 500;
+      width: fit-content;
+    }
+
+    .dot-flashing {
+      width: 6px;
+      height: 6px;
+      background-color: var(--brand);
+      border-radius: 50%;
+      animation: dotPulse 1s infinite alternate;
+    }
+    .dot-flashing:nth-child(2) { animation-delay: 0.2s; }
+    .dot-flashing:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotPulse {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .schedule-container {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .schedule-header {
+      background: var(--surface);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--brand);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .schedule-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .schedule-item:last-child {
+      border-bottom: none;
+    }
+
+    .time-slot {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .time-num {
+      font-size: 13px;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .lesson-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .lesson-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .lesson-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .badge-lesson-kind {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .kind-lecture { background: #e0f2fe; color: #0369a1; }
+    .kind-practice { background: #fef3c7; color: #92400e; }
+    .kind-lab { background: #dcfce7; color: #166534; }
+    .kind-other { background: #f1f5f9; color: #475569; }
+
+    .lesson-sub {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .verify-box {
+      max-width: 480px;
+      margin: 20px auto 0;
+      width: 100%;
+    }
+
+    .code-input-lg {
+      font-size: 32px;
+      letter-spacing: 12px;
+      text-align: center;
+      font-weight: 700;
+      height: 64px;
+      font-family: monospace;
+      color: var(--brand);
+    }
+
+    .status-banner {
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-banner.error {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #fecdd3;
+    }
+    .status-banner.warn {
+      background: var(--warn-soft);
+      color: var(--warn);
+      border: 1px solid #fde68a;
+    }
+    .status-banner.info {
+      background: var(--surface);
+      color: var(--text-dim);
+      border: 1px solid var(--line);
+    }
+
+    .clarify-card {
+      background: #ffffff;
+      border: 2px solid var(--brand);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin: 8px 0;
+    }
+
+    .ticket-preview {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .ticket-preview-row {
+      margin-bottom: 10px;
+    }
+    .ticket-preview-label {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+    }
+    .ticket-preview-val {
+      font-size: 16px;
+      color: var(--text);
+      font-weight: 500;
+      white-space: pre-wrap;
+    }
+
+    .success-hero {
+      text-align: center;
+      padding: 40px 16px;
+      max-width: 580px;
+      margin: 0 auto;
+    }
+
+    .ticket-num-badge {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--brand);
+      letter-spacing: 1px;
+      margin: 12px 0;
+      padding: 12px 24px;
+      background: var(--brand-light);
+      border-radius: var(--radius);
+      display: inline-block;
+    }
+
+    @media (max-width: 480px) {
+      .role-slider {
+        flex-direction: column;
+      }
+      .brand-title {
+        font-size: 16px;
+      }
+      h1.screen-title {
+        font-size: 24px;
+      }
+      .ticket-num-badge {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-mark" id="btnLogoHome" role="button" tabindex="0" title="На главную">
+        <!-- SVG reproducing the exact MISIS rebranded mark provided in prompt -->
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Логотип МИСИС">
+          <defs>
+            <!-- Top-Left Outer Arc Gradient: vibrant cyan to deep royal blue -->
+            <linearGradient id="misisGradOuterTL" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#00c8f8"/>
+              <stop offset="55%" stop-color="#0072ce"/>
+              <stop offset="100%" stop-color="#004de6"/>
+            </linearGradient>
+            <!-- Bottom-Right Outer Arc Gradient: deep royal blue to vibrant cyan -->
+            <linearGradient id="misisGradOuterBR" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#004de6"/>
+              <stop offset="45%" stop-color="#0072ce"/>
+              <stop offset="100%" stop-color="#00c8f8"/>
+            </linearGradient>
+            <!-- Cyan Portal Core Gradient -->
+            <linearGradient id="misisGradCoreCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="60%" stop-color="#0099f7"/>
+              <stop offset="100%" stop-color="#0066eb"/>
+            </linearGradient>
+            <!-- Blue Portal Core Gradient -->
+            <linearGradient id="misisGradCoreBlue" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0052d4"/>
+              <stop offset="50%" stop-color="#0044b8"/>
+              <stop offset="100%" stop-color="#002b66"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Top-Left Outer Arc (Quadrant 2) -->
+          <path d="M 50 0 A 50 50 0 0 0 0 50 L 13.5 50 A 36.5 36.5 0 0 1 50 13.5 Z" fill="url(#misisGradOuterTL)"/>
+
+          <!-- Bottom-Right Outer Arc (Quadrant 4) -->
+          <path d="M 50 100 A 50 50 0 0 0 100 50 L 86.5 50 A 36.5 36.5 0 0 1 50 86.5 Z" fill="url(#misisGradOuterBR)"/>
+
+          <!-- Right Cyan Core (Quadrants 1 and 4 inner) -->
+          <path d="M 50 13.5 A 36.5 36.5 0 0 1 86.5 50 L 74.5 50 A 24.5 24.5 0 0 1 50 74.5 L 50 62.5 A 12.5 12.5 0 0 0 50 37.5 L 50 13.5 Z" fill="url(#misisGradCoreCyan)"/>
+
+          <!-- Left Blue Core (Quadrants 3 and 2 inner) -->
+          <path d="M 50 86.5 A 36.5 36.5 0 0 1 13.5 50 L 25.5 50 A 24.5 24.5 0 0 1 50 25.5 L 50 37.5 A 12.5 12.5 0 0 0 50 62.5 L 50 86.5 Z" fill="url(#misisGradCoreBlue)"/>
+        </svg>
+        <span class="brand-title">МИСИС Поддержка</span>
+      </div>
+
+      <div class="header-user-status">
+        <span class="badge-role" id="hdrRoleBadge">Студент</span>
+        <span class="badge-verified" id="hdrVerifiedBadge" style="display:none;" title="Почта подтверждена">✓ email</span>
+        <button type="button" class="btn-text" id="hdrLogoutBtn" style="display:none;">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- Screen 1: Main screen with role slider -->
+    <section id="screen-main" class="screen-view is-active" aria-labelledby="mainTitle">
+      <div style="padding: 24px 0 16px;">
+        <h1 id="mainTitle" class="screen-title">Помощник поддержки МИСИС</h1>
+        <p class="screen-desc">
+          Отвечу на вопрос про поступление, учёбу и студенческую жизнь. Если ответа не найдётся — помогу составить обращение.
+        </p>
+
+        <div style="margin-bottom:10px;">
+          <label class="form-label" style="margin-bottom:8px; display:block;">Кто вы?</label>
+          <div class="role-slider" role="radiogroup" aria-label="Выбор роли">
+            <button type="button" class="role-option" data-role="applicant" role="radio" aria-checked="false">Поступающий</button>
+            <button type="button" class="role-option is-selected" data-role="student" role="radio" aria-checked="true">Студент</button>
+            <button type="button" class="role-option" data-role="teacher" role="radio" aria-checked="false">Преподаватель</button>
+          </div>
+        </div>
+
+        <button type="button" id="btnStartChat" class="btn btn-primary btn-block">Задать вопрос</button>
+      </div>
+    </section>
+
+    <!-- Screen 2: Chat screen with feed and input -->
+    <section id="screen-chat" class="screen-view" aria-label="Чат с поддержкой">
+      <div class="chat-layout">
+        <nav class="chat-nav-tabs" aria-label="Режимы">
+          <button type="button" class="tab-btn is-active" id="tabAskBtn">Задать вопрос</button>
+          <button type="button" class="tab-btn" id="tabTicketBtn">Создать обращение</button>
+        </nav>
+
+        <div class="chat-feed" id="chatFeed" role="log" aria-live="polite"></div>
+
+        <!-- Quick suggestion buttons for current role -->
+        <div class="quick-actions-bar" id="roleSuggestionsBar" aria-label="Быстрые вопросы"></div>
+
+        <!-- Quick actions row for verified student/teacher -->
+        <div class="quick-actions-bar" id="scheduleQuickBar" style="display:none;">
+          <button type="button" class="pill-btn" id="btnSchedToday">📅 Расписание на сегодня</button>
+          <button type="button" class="pill-btn" id="btnSchedTomorrow">📅 На завтра</button>
+          <label class="pill-btn" style="position:relative; cursor:pointer;">
+            <span>🗓️ Выбрать день</span>
+            <input type="date" id="dateSchedPicker" style="position:absolute; opacity:0; width:100%; left:0; top:0; height:100%; cursor:pointer;">
+          </label>
+        </div>
+
+        <form id="chatForm" onsubmit="return false;" style="margin-top:auto;">
+          <div class="chat-input-wrapper">
+            <textarea id="chatInput" class="chat-textarea" placeholder="Ваш вопрос своими словами..." rows="1" aria-label="Сообщение"></textarea>
+            <button type="button" id="chatSendBtn" class="chat-send-btn" aria-label="Отправить вопрос" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <div class="chat-hint-meta">
+            <span>Enter — отправить, Shift+Enter — перенос строки</span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 3: Email input with role-aware labels and hints -->
+    <section id="screen-verify-email" class="screen-view" aria-labelledby="verifyEmailTitle">
+      <div class="verify-box">
+        <h1 id="verifyEmailTitle" class="screen-title">Подтверждение почты</h1>
+        <p class="screen-desc">
+          Чтобы создать официальное обращение и получить ответ от сотрудников университета, подтвердите ваш почтовый адрес.
+        </p>
+
+        <form id="emailForm" onsubmit="return false;">
+          <div class="form-group">
+            <label for="inputEmail" class="form-label" id="emailFieldLabel">Адрес электронной почты <span class="req">*</span></label>
+            <input type="email" id="inputEmail" class="input-field" placeholder="ivanov@edu.misis.ru" required>
+            <div class="input-hint" id="emailHintText">
+              Студентам и преподавателям — корпоративная почта @edu.misis.ru или @misis.ru, поступающим — любая личная.
+            </div>
+          </div>
+
+          <button type="submit" id="btnSendCode" class="btn btn-primary btn-block">Получить код</button>
+          <button type="button" class="btn btn-secondary btn-block" style="margin-top:8px;" id="btnCancelVerify">Вернуться в чат</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 4: 6-digit verification code screen -->
+    <section id="screen-verify-code" class="screen-view" aria-labelledby="verifyCodeTitle">
+      <div class="verify-box">
+        <h1 id="verifyCodeTitle" class="screen-title">Введите код</h1>
+        <p class="screen-desc">
+          Мы отправили 6-значный код на <strong id="verifyCodeTargetEmail">user@misis.ru</strong>.
+        </p>
+
+        <form id="codeForm" onsubmit="return false;">
+          <div class="form-group">
+            <input type="text" id="inputVerifyCode" class="input-field code-input-lg" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code" required>
+          </div>
+
+          <div id="codeStatusBox" class="status-banner info" style="display:none;"></div>
+
+          <button type="submit" id="btnSubmitCode" class="btn btn-primary btn-block" style="margin-top:16px;">Подтвердить код</button>
+          <button type="button" id="btnResendCode" class="btn btn-secondary btn-block" style="margin-top:8px;" disabled>
+            Отправить код повторно <span id="codeTimerText">(0:45)</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 5: Dynamic Profile screen -->
+    <section id="screen-profile" class="screen-view" aria-labelledby="profileTitle">
+      <div class="verify-box" style="max-width:540px;">
+        <h1 id="profileTitle" class="screen-title">Расскажите о себе</h1>
+        <p class="screen-desc">Спрошу один раз — это нужно, чтобы показывать ваше точное расписание и адресовать вопросы в деканат.</p>
+
+        <form id="profileForm" onsubmit="return false;">
+          <div id="profileDynamicFields"></div>
+
+          <button type="submit" id="btnSaveProfile" class="btn btn-primary btn-block" style="margin-top:16px;">Сохранить и продолжить</button>
+          
+          <div style="margin-top:12px; text-align:center;">
+            <button type="button" id="btnSkipProfile" class="btn-text">Пропустить</button>
+            <p style="font-size:13px; color:var(--text-dim); margin-top:4px;">
+              Если пропустить, функции расписания и автозаполнения будут недоступны.
+            </p>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 6: Clarifications & Ticket Preview -->
+    <section id="screen-ticket-preview" class="screen-view" aria-labelledby="ticketDraftTitle">
+      <div style="max-width:680px; margin:0 auto; width:100%;">
+        <h1 id="ticketDraftTitle" class="screen-title">Оформление обращения</h1>
+        <p class="screen-desc">Проверьте данные перед отправкой. Запрос будет направлен профильному сотруднику МИСИС.</p>
+
+        <div id="clarifyQuestionsBlock" class="clarify-card" style="display:none;">
+          <h3 style="font-size:18px; margin-bottom:8px; color:var(--brand);">Чтобы оформить обращение, уточните:</h3>
+          <div id="clarifyInputsContainer"></div>
+          <button type="button" id="btnSubmitClarifications" class="btn btn-primary" style="margin-top:12px;">Продолжить</button>
+        </div>
+
+        <div id="ticketReadyBlock" class="card" style="display:none;">
+          <h3 style="font-size:20px; font-weight:700; color:var(--brand); margin-bottom:12px;">Предпросмотр обращения</h3>
+          
+          <div class="ticket-preview">
+            <div class="ticket-preview-row">
+              <div class="ticket-preview-label">Тема</div>
+              <div class="ticket-preview-val" id="previewSubject">—</div>
+            </div>
+            <div class="ticket-preview-row">
+              <div class="ticket-preview-label">От кого</div>
+              <div class="ticket-preview-val" id="previewSender">—</div>
+            </div>
+            <div class="ticket-preview-row">
+              <div class="ticket-preview-label">Текст обращения</div>
+              <div class="ticket-preview-val" id="previewText" style="background:#fff; padding:12px; border-radius:8px; border:1px solid var(--line); margin-top:4px;">—</div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:12px; margin-top:16px;">
+            <button type="button" id="btnConfirmSendTicket" class="btn btn-primary" style="flex:1;">Отправить обращение</button>
+            <button type="button" id="btnEditTicket" class="btn btn-secondary">Исправить</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 7: Ticket Sent confirmation -->
+    <section id="screen-ticket-sent" class="screen-view" aria-labelledby="sentTitle">
+      <div class="success-hero">
+        <div style="width:64px; height:64px; border-radius:50%; background:var(--ok-soft); color:var(--ok); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:32px;">
+          ✓
+        </div>
+        <h1 id="sentTitle" class="screen-title">Обращение отправлено</h1>
+        <p class="screen-desc" style="margin-bottom:8px;">Ваш вопрос зарегистрирован в службе поддержки университета.</p>
+
+        <div>
+          <div style="font-size:14px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Номер обращения</div>
+          <div class="ticket-num-badge" id="sentTicketId">MISIS-T-84920</div>
+        </div>
+
+        <div class="card" style="text-align:left; margin:20px 0;">
+          <div style="font-size:15px; margin-bottom:6px;"><strong>Куда направлено:</strong> <span id="sentTargetDept">Единый деканат МИСИС</span></div>
+          <div style="font-size:15px; margin-bottom:6px;"><strong>Что дальше:</strong> Ответ придёт на почту <span id="sentTargetEmail" style="color:var(--brand); font-weight:600;">user@edu.misis.ru</span>. Стандартный срок ответа — 1 рабочий день.</div>
+        </div>
+
+        <button type="button" id="btnBackToChatAfterSent" class="btn btn-primary btn-block">Задать ещё вопрос</button>
+      </div>
+    </section>
+
+  </main>
+
+  <template id="tpl-user-msg">
+    <div class="msg-bubble msg-bubble-user">
+      <div class="user-text"></div>
+    </div>
+  </template>
+
+  <template id="tpl-bot-container">
+    <div class="msg-bubble msg-bubble-bot">
+      <div class="bot-answer-group"></div>
+    </div>
+  </template>
+
+  <template id="tpl-answer-card">
+    <div class="answer-card">
+      <h3 class="answer-card-header"></h3>
+      <div class="answer-card-body"></div>
+      <div class="answer-sources">
+        <span>Источники:</span>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-notfound-card">
+    <div class="not-found-card">
+      <h4 class="not-found-title">Вопрос</h4>
+      <p>Точного ответа в базе не нашёл.</p>
+      <button type="button" class="btn btn-primary btn-create-ticket-trigger" style="height:40px; font-size:15px; padding:0 14px;">
+        Создать обращение
+      </button>
+    </div>
+  </template>
+
+  <template id="tpl-error-msg">
+    <div class="card" style="border-color:var(--accent); background:var(--accent-soft); width:100%;">
+      <div style="color:var(--accent); font-weight:700; margin-bottom:4px;" class="err-title">Не удалось связаться с помощником</div>
+      <div style="font-size:15px; color:var(--text); margin-bottom:8px;" class="err-desc">Проверьте соединение или повторите отправку.</div>
+      <button type="button" class="btn btn-secondary btn-retry-send" style="height:36px; font-size:14px; background:#fff;">Повторить</button>
+    </div>
+  </template>
+
+  <template id="tpl-schedule-card">
+    <div class="schedule-container">
+      <div class="schedule-header">
+        <span class="sched-date-title">Понедельник, 14 сентября</span>
+        <span class="sched-week-title">верхняя неделя</span>
+      </div>
+      <div class="schedule-lessons-list"></div>
+    </div>
+  </template>
+
+  <template id="tpl-schedule-item">
+    <div class="schedule-item">
+      <div class="time-slot">
+        <div class="time-hours">10:50–12:25</div>
+        <div class="time-num">2 пара</div>
+      </div>
+      <div class="lesson-meta">
+        <div class="lesson-title-row">
+          <span class="lesson-title">Название дисциплины</span>
+          <span class="badge-lesson-kind">лекция</span>
+        </div>
+        <div class="lesson-sub">
+          <span class="teacher-name">Иванов И. И.</span> · <span class="room-num">Б-402</span>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    window.USE_MOCK = true;
+    window.MOCK_CASE = 'two_questions';
+
+    const ROLES = {
+      applicant: 'Поступающий',
+      student: 'Студент',
+      teacher: 'Преподаватель'
+    };
+
+    const ROLE_GREETINGS = {
+      applicant: 'Здравствуйте! Спросите про поступление: сроки, документы, баллы, общежитие.',
+      student: 'Привет! Расписание, сессия, стипендия, справки, общежитие — готов ответить на любой вопрос.',
+      teacher: 'Здравствуйте! Проконсультирую по доступам к системам, расписанию аудиторий и оформлению документов.'
+    };
+
+    const ROLE_SUGGESTIONS = {
+      applicant: [
+        { label: 'Сроки', query: 'Сроки подачи документов' },
+        { label: 'Документы', query: 'Необходимые документы для поступления' },
+        { label: 'Баллы', query: 'Минимальные и проходные баллы' },
+        { label: 'Общежитие', query: 'Предоставление общежития поступающим' }
+      ],
+      student: [
+        { label: 'Расписание', query: 'Расписание занятий' },
+        { label: 'Сессия', query: 'Сроки и правила сдачи сессии' },
+        { label: 'Стипендия', query: 'Стипендии и сроки выплат' },
+        { label: 'Справки', query: 'Как заказать справку об обучении' },
+        { label: 'Общежитие', query: 'Проживание в общежитии и оплата' }
+      ],
+      teacher: [
+        { label: 'Доступы к системам', query: 'Доступы к корпоративным системам и сервисам' },
+        { label: 'Расписание аудиторий', query: 'Расписание занятий и бронирование аудиторий' },
+        { label: 'Оформление документов', query: 'Оформление служебных записок и документов' }
+      ]
+    };
+
+    const state = {
+      role: localStorage.getItem('misis_role') || 'student',
+      userEmail: localStorage.getItem('misis_email') || null,
+      isEmailVerified: localStorage.getItem('misis_verified') === 'true',
+      profile: JSON.parse(localStorage.getItem('misis_profile') || 'null'),
+      lastFailedMessage: '',
+      currentTicketDraft: null,
+      resendTimerId: null,
+      codeSecondsLeft: 0,
+      codeAttemptsLeft: 3,
+      finalTicketData: null
+    };
+
+    const screens = {
+      main: document.getElementById('screen-main'),
+      chat: document.getElementById('screen-chat'),
+      verifyEmail: document.getElementById('screen-verify-email'),
+      verifyCode: document.getElementById('screen-verify-code'),
+      profile: document.getElementById('screen-profile'),
+      ticketPreview: document.getElementById('screen-ticket-preview'),
+      ticketSent: document.getElementById('screen-ticket-sent')
+    };
+
+    const hdrRoleBadge = document.getElementById('hdrRoleBadge');
+    const hdrVerifiedBadge = document.getElementById('hdrVerifiedBadge');
+    const hdrLogoutBtn = document.getElementById('hdrLogoutBtn');
+    const btnLogoHome = document.getElementById('btnLogoHome');
+
+    const roleSliderButtons = document.querySelectorAll('.role-option');
+    const btnStartChat = document.getElementById('btnStartChat');
+
+    const chatFeed = document.getElementById('chatFeed');
+    const chatInput = document.getElementById('chatInput');
+    const chatSendBtn = document.getElementById('chatSendBtn');
+    const tabAskBtn = document.getElementById('tabAskBtn');
+    const tabTicketBtn = document.getElementById('tabTicketBtn');
+    const scheduleQuickBar = document.getElementById('scheduleQuickBar');
+
+    const emailForm = document.getElementById('emailForm');
+    const inputEmail = document.getElementById('inputEmail');
+    const emailHintText = document.getElementById('emailHintText');
+    const btnCancelVerify = document.getElementById('btnCancelVerify');
+
+    const codeForm = document.getElementById('codeForm');
+    const inputVerifyCode = document.getElementById('inputVerifyCode');
+    const codeStatusBox = document.getElementById('codeStatusBox');
+    const btnResendCode = document.getElementById('btnResendCode');
+    const codeTimerText = document.getElementById('codeTimerText');
+    const verifyCodeTargetEmail = document.getElementById('verifyCodeTargetEmail');
+
+    const profileDynamicFields = document.getElementById('profileDynamicFields');
+    const btnSkipProfile = document.getElementById('btnSkipProfile');
+    const profileForm = document.getElementById('profileForm');
+
+    function showScreen(name) {
+      Object.keys(screens).forEach(key => {
+        if (screens[key]) {
+          screens[key].classList.toggle('is-active', key === name);
+        }
+      });
+      window.scrollTo(0, 0);
+      updateHeaderUI();
+
+      if (name === 'verifyEmail') {
+        updateEmailScreenForRole();
+      }
+    }
+
+    function updateEmailScreenForRole() {
+      if (state.role === 'applicant') {
+        inputEmail.placeholder = 'Введите почту';
+        emailHintText.style.display = 'none';
+      } else {
+        inputEmail.placeholder = 'ivanov@edu.misis.ru';
+        emailHintText.style.display = 'block';
+      }
+    }
+
+    function updateHeaderUI() {
+      hdrRoleBadge.textContent = ROLES[state.role];
+      if (state.isEmailVerified && state.userEmail) {
+        hdrVerifiedBadge.style.display = 'inline-flex';
+        hdrVerifiedBadge.textContent = `✓ ${state.userEmail}`;
+        hdrLogoutBtn.style.display = 'inline-block';
+      } else {
+        hdrVerifiedBadge.style.display = 'none';
+        hdrLogoutBtn.style.display = 'none';
+      }
+
+      const isQualifiedForSchedule = state.isEmailVerified && (state.role === 'student' || state.role === 'teacher') && (state.profile && (state.profile.group || state.profile.department));
+      scheduleQuickBar.style.display = isQualifiedForSchedule ? 'flex' : 'none';
+    }
+
+    async function api(endpoint, options = {}) {
+      if (window.USE_MOCK) {
+        await new Promise(r => setTimeout(r, 650));
+        return mockApi(endpoint, options);
+      }
+      const res = await fetch(endpoint, options);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const err = new Error(errData.message || 'Ошибка сервера');
+        err.status = res.status;
+        err.data = errData;
+        throw err;
+      }
+      return res.json();
+    }
+
+    function mockApi(endpoint, options) {
+      const scenario = window.MOCK_CASE;
+      const body = options.body ? JSON.parse(options.body) : {};
+
+      if (scenario === 'server_error' && endpoint.includes('/api/ask')) {
+        const err = new Error('Внутренняя ошибка сервиса классификации');
+        err.status = 500;
+        err.data = { request_id: 'REQ-99201-ERR' };
+        throw err;
+      }
+
+      if (endpoint === '/api/ask') {
+        if (scenario === 'all_answered') {
+          return {
+            questions: [
+              {
+                query: 'Сроки подачи документов на бюджет',
+                answer: {
+                  summary: 'Приём документов на бакалавриат и специалитет начинается 20 июня 2026 года и завершается 25 июля для поступающих по результатам ЕГЭ.',
+                  sources: [{ title: 'Приёмная кампания МИСИС 2026', url: 'https://misis.ru/applicants/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (scenario === 'nothing_found') {
+          return {
+            questions: [
+              {
+                query: body.text || 'Вопрос заявителя',
+                answer: null,
+                suggest_ticket: true
+              }
+            ]
+          };
+        }
+
+        const lower = (body.text || '').toLowerCase();
+
+        if (lower.includes('стипенди')) {
+          return {
+            questions: [
+              {
+                query: 'Стипендии и порядок выплат',
+                answer: {
+                  summary: 'Государственная академическая стипендия выплачивается студентам очной бюджетной формы обучения, сдавшим сессию без троек. Выплаты производятся ежемесячно с 25 по 28 число.',
+                  sources: [{ title: 'Стипендиальное обеспечение МИСИС', url: 'https://misis.ru/students/scholarships/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (lower.includes('сесси')) {
+          return {
+            questions: [
+              {
+                query: 'Сроки и правила прохождения сессии',
+                answer: {
+                  summary: 'Зимняя зачётно-экзаменационная сессия проходит в январе, летняя — в июне. Индивидуальный график сдачи экзаменов доступен в личном кабинете студента.',
+                  sources: [{ title: 'Учебный процесс и сессии', url: 'https://misis.ru/students/education/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (lower.includes('справк')) {
+          return {
+            questions: [
+              {
+                query: 'Заказ справок об обучении',
+                answer: {
+                  summary: 'Справку об обучении с электронной подписью можно заказать онлайн через Личный кабинет студента или очно в Едином деканате (корпус Б). Срок готовности — от 1 до 3 рабочих дней.',
+                  sources: [{ title: 'Единый деканат МИСИС', url: 'https://misis.ru/students/decanat/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (lower.includes('общежит')) {
+          return {
+            questions: [
+              {
+                query: 'Предоставление и проживание в общежитии',
+                answer: {
+                  summary: 'Места в студгородках («Металлург», «Горняк», «Дом-коммуна») распределяются в соответствии с рейтингом и нормативными актами. Для заселения требуются паспорт, справка 086/у и флюорография.',
+                  sources: [{ title: 'Студенческий городок МИСИС', url: 'https://misis.ru/students/campus/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (lower.includes('систем') || lower.includes('доступ')) {
+          return {
+            questions: [
+              {
+                query: 'Доступы к корпоративным системам МИСИС',
+                answer: {
+                  summary: 'Учётные данные единой авторизации (SSO) активируются Управлением информационных технологий. Доступ к LMS Canvas, ЭИОС и корпоративной почте @misis.ru выдаётся при трудоустройстве.',
+                  sources: [{ title: 'ИТ-сервисы и поддержка МИСИС', url: 'https://misis.ru/university/it/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (lower.includes('аудитор')) {
+          return {
+            questions: [
+              {
+                query: 'Расписание аудиторий и бронирование',
+                answer: {
+                  summary: 'Занятость аудиторий отображается в сервисе расписания. Внеучебное бронирование аудиторий и лабораторий согласуется через служебную записку в диспетчерскую учебного управления.',
+                  sources: [{ title: 'Диспетчерская служба расписания', url: 'https://misis.ru/university/schedule/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        if (lower.includes('оформлен') && lower.includes('документ')) {
+          return {
+            questions: [
+              {
+                query: 'Оформление документов и служебных записок',
+                answer: {
+                  summary: 'Шаблоны бланков, заявлений и служебных записок размещены в корпоративной системе Directum и на внутреннем портале. Подписание служебных записок происходит в электронном виде.',
+                  sources: [{ title: 'Электронный документооборот МИСИС', url: 'https://misis.ru/university/edo/' }]
+                },
+                suggest_ticket: false
+              }
+            ]
+          };
+        }
+
+        // Mixed case: answer + not found
+        return {
+          questions: [
+            {
+              query: body.text || 'Сроки подачи документов',
+              answer: {
+                summary: 'Приём документов на бакалавриат и специалитет начинается 20 июня 2026 года и завершается 25 июля для поступающих по результатам ЕГЭ.',
+                sources: [{ title: 'Приёмная кампания МИСИС 2026', url: 'https://misis.ru/applicants/' }]
+              },
+              suggest_ticket: false
+            },
+            {
+              query: 'Нужен ли оригинал аттестата сразу при подаче заявления?',
+              answer: null,
+              suggest_ticket: true
+            }
+          ]
+        };
+      }
+
+      if (endpoint === '/api/auth/send-code') {
+        if (scenario === 'rate_limited') {
+          const err = new Error('Слишком много запросов');
+          err.status = 429;
+          err.data = { retry_after_sec: 30 };
+          throw err;
+        }
+        return { success: true, resend_after_sec: 45 };
+      }
+
+      if (endpoint === '/api/auth/verify-code') {
+        if (scenario === 'wrong_code') {
+          const err = new Error('Неверный код');
+          err.data = { error: 'invalid_code', attempts_left: 2 };
+          throw err;
+        }
+        if (scenario === 'expired_code') {
+          const err = new Error('Код истёк');
+          err.data = { error: 'code_expired' };
+          throw err;
+        }
+        return { success: true, profile_filled: false };
+      }
+
+      if (endpoint.startsWith('/api/profile/fields')) {
+        if (state.role === 'applicant') return { fields: [] };
+        if (state.role === 'student') {
+          return {
+            fields: [
+              { id: 'institute', label: 'Институт', type: 'select', required: true, options: ['ИТКН', 'ЭКОТЕХ', 'ИМКЭ', 'ИНМиН', 'МИНГЕО'] },
+              { id: 'group', label: 'Учебная группа', type: 'select', required: true, options: ['БПИ-23-1', 'БПИ-23-2', 'БИВТ-23-1', 'БПМ-23-1'] },
+              { id: 'subgroup', label: 'Подгруппа', type: 'text', required: false }
+            ]
+          };
+        }
+        if (state.role === 'teacher') {
+          return {
+            fields: [
+              { id: 'department', label: 'Кафедра', type: 'text', required: true },
+              { id: 'fio', label: 'Фамилия и инициалы', type: 'text', required: true }
+            ]
+          };
+        }
+        return { fields: [] };
+      }
+
+      if (endpoint === '/api/profile/save') {
+        return { success: true };
+      }
+
+      if (endpoint.startsWith('/api/schedule')) {
+        if (scenario === 'empty_schedule') {
+          return {
+            date_label: 'Воскресенье, 13 сентября',
+            week: '',
+            lessons: []
+          };
+        }
+        return {
+          date_label: 'Понедельник, 14 сентября',
+          week: 'верхняя неделя',
+          lessons: [
+            {
+              number: 2,
+              time: '10:50–12:25',
+              discipline: 'Введение в специальность',
+              kind: 'lab',
+              teacher: 'Неворошкин В. А.',
+              room: 'Л-812-УВЦ'
+            },
+            {
+              number: 3,
+              time: '12:40–14:15',
+              discipline: 'Математика',
+              kind: 'practice',
+              teacher: 'Ким-Тян Л. Р.',
+              room: 'Л-629'
+            },
+            {
+              number: 4,
+              time: '14:30–16:05',
+              discipline: 'Физическая культура и спорт',
+              kind: 'other',
+              teacher: '',
+              room: 'Спорткомплекс МИСИС'
+            }
+          ]
+        };
+      }
+
+      if (endpoint === '/api/ticket/draft') {
+        if (!body.clarified && state.role === 'applicant') {
+          return {
+            ready: false,
+            missing_fields: [
+              { id: 'direction', label: 'На какое направление подаёте документы?' }
+            ]
+          };
+        }
+        return {
+          ready: true,
+          subject: `Обращение: вопрос по теме "${body.topic || 'Учебный процесс'}"`,
+          sender: state.userEmail || 'ivanov@edu.misis.ru',
+          body_preview: `Здравствуйте! Прошу помочь с решением вопроса.\n\nТематика: ${body.topic || 'Уточнение информации'}\nНаправление/Группа: ${body.direction || (state.profile ? state.profile.group : 'Не указана')}\nЗаявитель: ${state.userEmail}\nРоль: ${ROLES[state.role]}`
+        };
+      }
+
+      if (endpoint === '/api/ticket/send') {
+        return {
+          success: true,
+          ticket_id: 'MISIS-T-' + Math.floor(10000 + Math.random() * 90000),
+          sent_to: 'Единый деканат МИСИС',
+          client_email: state.userEmail || 'user@edu.misis.ru'
+        };
+      }
+
+      return { status: 'ok' };
+    }
+
+    function setRole(newRole) {
+      state.role = newRole;
+      localStorage.setItem('misis_role', newRole);
+      roleSliderButtons.forEach(btn => {
+        const isCur = btn.getAttribute('data-role') === newRole;
+        btn.classList.toggle('is-selected', isCur);
+        btn.setAttribute('aria-checked', isCur ? 'true' : 'false');
+      });
+      updateHeaderUI();
+      updateEmailScreenForRole();
+      renderRoleSuggestions();
+    }
+
+    function renderRoleSuggestions() {
+      const container = document.getElementById('roleSuggestionsBar');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const suggestions = ROLE_SUGGESTIONS[state.role] || [];
+      suggestions.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pill-btn';
+        btn.textContent = item.label;
+        btn.setAttribute('title', item.query);
+        btn.addEventListener('click', () => {
+          chatInput.value = item.query;
+          submitChatMessage();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    roleSliderButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setRole(btn.getAttribute('data-role'));
+      });
+    });
+
+    btnStartChat.addEventListener('click', () => {
+      showScreen('chat');
+      ensureInitialGreeting();
+    });
+
+    btnLogoHome.addEventListener('click', () => {
+      showScreen('main');
+    });
+
+    btnLogoHome.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        showScreen('main');
+      }
+    });
+
+    hdrLogoutBtn.addEventListener('click', () => {
+      state.isEmailVerified = false;
+      state.userEmail = null;
+      state.profile = null;
+      localStorage.removeItem('misis_email');
+      localStorage.removeItem('misis_verified');
+      localStorage.removeItem('misis_profile');
+      updateHeaderUI();
+      addBotTextBubble('Вы вышли из подтверждённого аккаунта. Обращения можно создавать после повторного подтверждения почты.');
+    });
+
+    function ensureInitialGreeting() {
+      if (chatFeed.children.length === 0) {
+        addBotTextBubble(ROLE_GREETINGS[state.role]);
+      }
+    }
+
+    function addBotTextBubble(text) {
+      const group = document.createElement('div');
+      group.className = 'msg-bubble msg-bubble-bot';
+      const card = document.createElement('div');
+      card.className = 'answer-card';
+      card.style.borderLeft = '4px solid var(--brand)';
+      card.innerHTML = `<div class="answer-card-body" style="margin-bottom:0;">${escapeHtml(text)}</div>`;
+      group.appendChild(card);
+      chatFeed.appendChild(group);
+      scrollChatToBottom();
+    }
+
+    function addUserBubble(text) {
+      const tpl = document.getElementById('tpl-user-msg');
+      const node = tpl.content.cloneNode(true);
+      node.querySelector('.user-text').textContent = text;
+      chatFeed.appendChild(node);
+      scrollChatToBottom();
+    }
+
+    function showTypingIndicator() {
+      const div = document.createElement('div');
+      div.id = 'chatTypingNode';
+      div.className = 'typing-indicator';
+      div.innerHTML = `
+        <span class="dot-flashing"></span>
+        <span class="dot-flashing"></span>
+        <span class="dot-flashing"></span>
+        <span style="margin-left:4px;">Разбираю обращение…</span>
+      `;
+      chatFeed.appendChild(div);
+      scrollChatToBottom();
+    }
+
+    function hideTypingIndicator() {
+      const node = document.getElementById('chatTypingNode');
+      if (node) node.remove();
+    }
+
+    function scrollChatToBottom() {
+      chatFeed.scrollTop = chatFeed.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderBotQuestionsResponse(questionsList) {
+      const containerTpl = document.getElementById('tpl-bot-container');
+      const container = containerTpl.content.cloneNode(true);
+      const groupEl = container.querySelector('.bot-answer-group');
+
+      const ansTpl = document.getElementById('tpl-answer-card');
+      const notFoundTpl = document.getElementById('tpl-notfound-card');
+
+      questionsList.forEach(item => {
+        if (item.answer) {
+          const cardNode = ansTpl.content.cloneNode(true);
+          cardNode.querySelector('.answer-card-header').textContent = item.query;
+          cardNode.querySelector('.answer-card-body').textContent = item.answer.summary;
+
+          const sourcesBox = cardNode.querySelector('.answer-sources');
+          (item.answer.sources || []).forEach(src => {
+            const a = document.createElement('a');
+            a.className = 'answer-source-link';
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.href = src.url;
+            a.innerHTML = `→ <span>${escapeHtml(src.title)}</span> ↗`;
+            sourcesBox.appendChild(document.createElement('br'));
+            sourcesBox.appendChild(a);
+          });
+          groupEl.appendChild(cardNode);
+        } else {
+          const nfNode = notFoundTpl.content.cloneNode(true);
+          nfNode.querySelector('.not-found-title').textContent = item.query;
+          const btnTicket = nfNode.querySelector('.btn-create-ticket-trigger');
+          btnTicket.addEventListener('click', () => {
+            startTicketFlow(item.query);
+          });
+          groupEl.appendChild(nfNode);
+        }
+      });
+
+      chatFeed.appendChild(container);
+      scrollChatToBottom();
+    }
+
+    function renderErrorMessage(errorText, onRetry) {
+      const tpl = document.getElementById('tpl-error-msg');
+      const node = tpl.content.cloneNode(true);
+      node.querySelector('.err-desc').textContent = errorText;
+      node.querySelector('.btn-retry-send').addEventListener('click', () => {
+        if (onRetry) onRetry();
+      });
+      chatFeed.appendChild(node);
+      scrollChatToBottom();
+    }
+
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+      chatSendBtn.disabled = chatInput.value.trim().length === 0;
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitChatMessage();
+      }
+    });
+
+    chatSendBtn.addEventListener('click', submitChatMessage);
+
+    async function submitChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      addUserBubble(text);
+      state.lastFailedMessage = text;
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      chatSendBtn.disabled = true;
+
+      showTypingIndicator();
+
+      try {
+        const response = await api('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, role: state.role })
+        });
+        hideTypingIndicator();
+        state.lastFailedMessage = '';
+        renderBotQuestionsResponse(response.questions || []);
+      } catch (err) {
+        hideTypingIndicator();
+        let errMsg = 'Не удалось связаться с помощником.';
+        if (err.data && err.data.request_id) {
+          errMsg += ` (Идентификатор: ${err.data.request_id})`;
+        }
+        renderErrorMessage(errMsg, () => {
+          chatInput.value = state.lastFailedMessage;
+          chatInput.focus();
+          submitChatMessage();
+        });
+      }
+    }
+
+    tabAskBtn.addEventListener('click', () => {
+      tabAskBtn.classList.add('is-active');
+      tabTicketBtn.classList.remove('is-active');
+      showScreen('chat');
+    });
+
+    tabTicketBtn.addEventListener('click', () => {
+      tabTicketBtn.classList.add('is-active');
+      tabAskBtn.classList.remove('is-active');
+      startTicketFlow('Запрос в службу поддержки');
+    });
+
+    function startTicketFlow(topicTitle) {
+      state.currentTicketDraft = { topic: topicTitle || 'Вопрос пользователя' };
+      if (!state.isEmailVerified) {
+        showScreen('verifyEmail');
+      } else {
+        processTicketDraft();
+      }
+    }
+
+    btnCancelVerify.addEventListener('click', () => {
+      showScreen('chat');
+    });
+
+    emailForm.addEventListener('submit', async () => {
+      const email = inputEmail.value.trim();
+      if (!email) return;
+
+      const btn = document.getElementById('btnSendCode');
+      btn.disabled = true;
+      btn.textContent = 'Отправка...';
+
+      try {
+        const res = await api('/api/auth/send-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role: state.role })
+        });
+        state.userEmail = email;
+        verifyCodeTargetEmail.textContent = email;
+        showScreen('verifyCode');
+        initCodeTimer(res.resend_after_sec || 45);
+        state.codeAttemptsLeft = 3;
+        hideCodeStatus();
+      } catch (err) {
+        if (err.status === 429) {
+          showScreen('verifyCode');
+          state.userEmail = email;
+          verifyCodeTargetEmail.textContent = email;
+          const waitSec = (err.data && err.data.retry_after_sec) || 45;
+          initCodeTimer(waitSec);
+          showCodeStatus(`Слишком часто. Повторите через ${waitSec} секунд.`, 'warn');
+        } else {
+          showCodeStatus('Ошибка при отправке: ' + err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Получить код';
+      }
+    });
+
+    function initCodeTimer(seconds) {
+      state.codeSecondsLeft = seconds;
+      clearInterval(state.resendTimerId);
+      btnResendCode.disabled = true;
+      updateTimerLabel();
+
+      state.resendTimerId = setInterval(() => {
+        state.codeSecondsLeft--;
+        updateTimerLabel();
+        if (state.codeSecondsLeft <= 0) {
+          clearInterval(state.resendTimerId);
+          btnResendCode.disabled = false;
+          codeTimerText.textContent = '';
+        }
+      }, 1000);
+    }
+
+    function updateTimerLabel() {
+      if (state.codeSecondsLeft > 0) {
+        const m = Math.floor(state.codeSecondsLeft / 60);
+        const s = state.codeSecondsLeft % 60;
+        codeTimerText.textContent = `(${m}:${s < 10 ? '0' : ''}${s})`;
+      }
+    }
+
+    btnResendCode.addEventListener('click', async () => {
+      try {
+        const res = await api('/api/auth/send-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: state.userEmail, role: state.role })
+        });
+        initCodeTimer(res.resend_after_sec || 45);
+        showCodeStatus('Новый код выслан на почту.', 'info');
+      } catch (err) {
+        showCodeStatus(err.message, 'error');
+      }
+    });
+
+    function showCodeStatus(text, type = 'info') {
+      codeStatusBox.className = `status-banner ${type}`;
+      codeStatusBox.textContent = text;
+      codeStatusBox.style.display = 'block';
+    }
+
+    function hideCodeStatus() {
+      codeStatusBox.style.display = 'none';
+    }
+
+    codeForm.addEventListener('submit', async () => {
+      const code = inputVerifyCode.value.trim();
+      if (code.length < 6) {
+        showCodeStatus('Введите все 6 цифр кода подтверждения', 'warn');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btnSubmitCode');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Проверка...';
+
+      try {
+        const res = await api('/api/auth/verify-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: state.userEmail, code })
+        });
+
+        state.isEmailVerified = true;
+        localStorage.setItem('misis_verified', 'true');
+        localStorage.setItem('misis_email', state.userEmail);
+        updateHeaderUI();
+
+        if (state.role !== 'applicant' && !res.profile_filled && !state.profile) {
+          loadProfileForm();
+        } else {
+          processTicketDraft();
+        }
+      } catch (err) {
+        if (err.data && err.data.error === 'invalid_code') {
+          state.codeAttemptsLeft = err.data.attempts_left;
+          showCodeStatus(`Неверный код, осталось попыток: ${state.codeAttemptsLeft}`, 'error');
+        } else if (err.data && err.data.error === 'code_expired') {
+          showCodeStatus('Код истёк, запросите новый', 'warn');
+          btnResendCode.disabled = false;
+        } else if (err.status === 429) {
+          const sec = (err.data && err.data.retry_after_sec) || 30;
+          initCodeTimer(sec);
+          showCodeStatus(`Слишком часто. Повторите через ${sec} секунд`, 'warn');
+        } else {
+          showCodeStatus(err.message || 'Ошибка валидации кода', 'error');
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Подтвердить код';
+      }
+    });
+
+    async function loadProfileForm() {
+      try {
+        const data = await api(`/api/profile/fields?role=${state.role}`);
+        profileDynamicFields.innerHTML = '';
+
+        if (!data.fields || data.fields.length === 0) {
+          processTicketDraft();
+          return;
+        }
+
+        data.fields.forEach(f => {
+          const grp = document.createElement('div');
+          grp.className = 'form-group';
+          const lbl = document.createElement('label');
+          lbl.className = 'form-label';
+          lbl.htmlFor = 'fld_' + f.id;
+          lbl.innerHTML = `${escapeHtml(f.label)} ${f.required ? '<span class="req">*</span>' : ''}`;
+          grp.appendChild(lbl);
+
+          let inputEl;
+          if (f.type === 'select') {
+            inputEl = document.createElement('select');
+            inputEl.className = 'input-field';
+            inputEl.id = 'fld_' + f.id;
+            inputEl.name = f.id;
+            if (f.required) inputEl.required = true;
+
+            const defOpt = document.createElement('option');
+            defOpt.value = '';
+            defOpt.textContent = 'Выберите из списка...';
+            inputEl.appendChild(defOpt);
+
+            (f.options || []).forEach(opt => {
+              const o = document.createElement('option');
+              o.value = opt;
+              o.textContent = opt;
+              inputEl.appendChild(o);
+            });
+          } else {
+            inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.className = 'input-field';
+            inputEl.id = 'fld_' + f.id;
+            inputEl.name = f.id;
+            if (f.required) inputEl.required = true;
+          }
+          grp.appendChild(inputEl);
+          profileDynamicFields.appendChild(grp);
+        });
+
+        showScreen('profile');
+      } catch (e) {
+        processTicketDraft();
+      }
+    }
+
+    profileForm.addEventListener('submit', async () => {
+      const formData = new FormData(profileForm);
+      const profileData = {};
+      formData.forEach((v, k) => { profileData[k] = v; });
+
+      try {
+        await api('/api/profile/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profileData)
+        });
+        state.profile = profileData;
+        localStorage.setItem('misis_profile', JSON.stringify(profileData));
+        updateHeaderUI();
+        processTicketDraft();
+      } catch (err) {
+        showCodeStatus('Не удалось сохранить профиль: ' + err.message, 'error');
+      }
+    });
+
+    btnSkipProfile.addEventListener('click', () => {
+      state.profile = null;
+      updateHeaderUI();
+      processTicketDraft();
+    });
+
+    async function processTicketDraft(clarifications = {}) {
+      showScreen('ticketPreview');
+      const draftPayload = Object.assign({}, state.currentTicketDraft || {}, clarifications);
+
+      try {
+        const res = await api('/api/ticket/draft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(draftPayload)
+        });
+
+        const clarifyBlock = document.getElementById('clarifyQuestionsBlock');
+        const readyBlock = document.getElementById('ticketReadyBlock');
+        const clarifyContainer = document.getElementById('clarifyInputsContainer');
+
+        if (!res.ready && res.missing_fields && res.missing_fields.length > 0) {
+          clarifyBlock.style.display = 'block';
+          readyBlock.style.display = 'none';
+          clarifyContainer.innerHTML = '';
+
+          res.missing_fields.forEach(mf => {
+            const grp = document.createElement('div');
+            grp.className = 'form-group';
+            grp.innerHTML = `
+              <label class="form-label">${escapeHtml(mf.label)} <span class="req">*</span></label>
+              <input type="text" class="input-field clarify-input" data-field="${mf.id}" required>
+            `;
+            clarifyContainer.appendChild(grp);
+          });
+
+          document.getElementById('btnSubmitClarifications').onclick = () => {
+            const filledAnswers = {};
+            clarifyContainer.querySelectorAll('.clarify-input').forEach(inp => {
+              filledAnswers[inp.getAttribute('data-field')] = inp.value;
+            });
+            filledAnswers.clarified = true;
+            processTicketDraft(filledAnswers);
+          };
+        } else {
+          clarifyBlock.style.display = 'none';
+          readyBlock.style.display = 'block';
+
+          document.getElementById('previewSubject').textContent = res.subject;
+          document.getElementById('previewSender').textContent = res.sender;
+          document.getElementById('previewText').textContent = res.body_preview;
+
+          state.finalTicketData = res;
+        }
+      } catch (err) {
+        renderErrorMessage('Ошибка подготовки обращения: ' + err.message);
+      }
+    }
+
+    document.getElementById('btnEditTicket').addEventListener('click', () => {
+      showScreen('chat');
+    });
+
+    document.getElementById('btnConfirmSendTicket').addEventListener('click', async () => {
+      const btn = document.getElementById('btnConfirmSendTicket');
+      btn.disabled = true;
+      btn.textContent = 'Отправка...';
+
+      try {
+        const res = await api('/api/ticket/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state.finalTicketData || {})
+        });
+
+        document.getElementById('sentTicketId').textContent = res.ticket_id;
+        document.getElementById('sentTargetDept').textContent = res.sent_to;
+        document.getElementById('sentTargetEmail').textContent = res.client_email;
+
+        showScreen('ticketSent');
+      } catch (err) {
+        showCodeStatus('Ошибка при отправке: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Отправить обращение';
+      }
+    });
+
+    document.getElementById('btnBackToChatAfterSent').addEventListener('click', () => {
+      tabAskBtn.classList.add('is-active');
+      tabTicketBtn.classList.remove('is-active');
+      showScreen('chat');
+    });
+
+    document.getElementById('btnSchedToday').addEventListener('click', () => fetchSchedule('today'));
+    document.getElementById('btnSchedTomorrow').addEventListener('click', () => fetchSchedule('tomorrow'));
+    document.getElementById('dateSchedPicker').addEventListener('change', (e) => {
+      if (e.target.value) fetchSchedule(e.target.value);
+    });
+
+    async function fetchSchedule(dayParam) {
+      showTypingIndicator();
+      try {
+        const data = await api(`/api/schedule?day=${dayParam}&role=${state.role}`);
+        hideTypingIndicator();
+        renderScheduleCard(data);
+      } catch (err) {
+        hideTypingIndicator();
+        if (err.data && err.data.error === 'profile_incomplete') {
+          const wrap = document.createElement('div');
+          wrap.className = 'msg-bubble msg-bubble-bot';
+          wrap.innerHTML = `
+            <div class="card" style="border-left:4px solid var(--warn);">
+              <h4 style="color:var(--warn); margin-bottom:6px;">Чтобы показать расписание, нужна ваша группа</h4>
+              <p style="font-size:15px; color:var(--text); margin-bottom:12px;">Заполните профиль студента или преподавателя для доступа к расписанию.</p>
+              <button type="button" class="btn btn-secondary" id="btnOpenProfFromSchedule">Заполнить профиль</button>
+            </div>
+          `;
+          chatFeed.appendChild(wrap);
+          wrap.querySelector('#btnOpenProfFromSchedule').onclick = () => loadProfileForm();
+          scrollChatToBottom();
+        } else {
+          renderErrorMessage('Не удалось загрузить расписание', () => fetchSchedule(dayParam));
+        }
+      }
+    }
+
+    function renderScheduleCard(sched) {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg-bubble msg-bubble-bot';
+
+      if (!sched.lessons || sched.lessons.length === 0) {
+        wrap.innerHTML = `
+          <div class="card" style="border-left:4px solid var(--brand); width:100%;">
+            <strong>${escapeHtml(sched.date_label || 'Выбранный день')}</strong><br>
+            <span style="color:var(--text-dim);">В этот день занятий нет.</span>
+          </div>
+        `;
+        chatFeed.appendChild(wrap);
+        scrollChatToBottom();
+        return;
+      }
+
+      const tpl = document.getElementById('tpl-schedule-card');
+      const card = tpl.content.cloneNode(true);
+      card.querySelector('.sched-date-title').textContent = sched.date_label;
+      card.querySelector('.sched-week-title').textContent = sched.week || '';
+
+      const listContainer = card.querySelector('.schedule-lessons-list');
+      const itemTpl = document.getElementById('tpl-schedule-item');
+
+      sched.lessons.forEach(l => {
+        const itemNode = itemTpl.content.cloneNode(true);
+        itemNode.querySelector('.time-hours').textContent = l.time;
+        itemNode.querySelector('.time-num').textContent = `${l.number} пара`;
+        itemNode.querySelector('.lesson-title').textContent = l.discipline;
+
+        const kindBadge = itemNode.querySelector('.badge-lesson-kind');
+        const kindLabels = { lecture: 'лекция', practice: 'практика', lab: 'лаборатор.', other: 'занятие' };
+        kindBadge.textContent = kindLabels[l.kind] || 'занятие';
+        kindBadge.className = `badge-lesson-kind kind-${l.kind || 'other'}`;
+
+        const subEl = itemNode.querySelector('.lesson-sub');
+        if (l.teacher) {
+          subEl.innerHTML = `<span>${escapeHtml(l.teacher)}</span> · <span>${escapeHtml(l.room)}</span>`;
+        } else {
+          subEl.innerHTML = `<span>${escapeHtml(l.room)}</span>`;
+        }
+
+        listContainer.appendChild(itemNode);
+      });
+
+      wrap.appendChild(card);
+      chatFeed.appendChild(wrap);
+      scrollChatToBottom();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setRole(state.role);
+      updateHeaderUI();
+      updateEmailScreenForRole();
+      renderRoleSuggestions();
+    });
+  </script>
+</body>
+</html>
