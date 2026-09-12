@@ -1,7 +1,7 @@
 // Консоль оператора поддержки.
 // window.USE_MOCK = true подменяет все запросы к API заготовленными данными —
 // удобно для демонстрации без бэкенда. По умолчанию выключено.
-window.USE_MOCK = true;
+window.USE_MOCK = false;
 
 (function () {
   'use strict';

@@ -675,5 +675,15 @@ def health() -> dict:
 
 
 _web = Path(__file__).resolve().parent.parent / "web"
+
+# Консоль сотрудника монтируется отдельно и раньше корня. Раньше — потому что
+# StaticFiles на "/" перехватывает вообще все пути и до вложенного каталога
+# очередь бы не дошла. Отдельно — потому что студенческий интерфейс делает
+# другой человек, и до появления web/index.html корневого монтирования нет
+# вовсе: без этой развязки готовая консоль отдавала бы 404 из-за чужой задачи.
+if (_web / "operator" / "index.html").exists():
+    app.mount("/operator", StaticFiles(directory=str(_web / "operator"), html=True),
+              name="operator")
+
 if (_web / "index.html").exists():
     app.mount("/", StaticFiles(directory=str(_web), html=True), name="web")
