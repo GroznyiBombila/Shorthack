@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>МИСИС Поддержка — Единая почта обращений</title>
+  <style>
+    :root {
+      --bg-app: #f6f8fc;
+      --bg-surface: #ffffff;
+      --bg-hover: #eaf1fb;
+      --bg-selected: #d3e3fd;
+      --border-color: #e0e4eb;
+      --text-main: #1f1f1f;
+      --text-secondary: #444746;
+      --text-dim: #747775;
+      
+      --misis-blue: #002c6c;
+      --misis-cyan: #00c8f8;
+      --misis-blue-hover: #001f4d;
+      
+      --role-applicant: #8e24aa;
+      --role-applicant-bg: #f3e5f5;
+      --role-student: #0072ce;
+      --role-student-bg: #e8f0fe;
+      --role-teacher: #e65100;
+      --role-teacher-bg: #fff3e0;
+      
+      --status-new: #d93025;
+      --status-new-bg: #fce8e6;
+      --status-progress: #b26a00;
+      --status-progress-bg: #fef4e6;
+      --status-resolved: #188038;
+      --status-resolved-bg: #e6f4ea;
+      
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-pill: 9999px;
+      --font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      font-size: 14px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mail-header {
+      height: 64px;
+      background: var(--bg-app);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      gap: 16px;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 250px;
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+    }
+    .btn-icon:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    .brand-logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .brand-logo-wrap svg {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+    .brand-logo-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--misis-blue);
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+    .brand-sub {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      font-weight: 700;
+      display: block;
+      margin-top: -2px;
+    }
+
+    .search-container {
+      flex: 1;
+      max-width: 720px;
+      position: relative;
+    }
+
+    .search-bar {
+      width: 100%;
+      height: 46px;
+      background: #eaf1fb;
+      border: 1px solid transparent;
+      border-radius: 24px;
+      padding: 0 48px 0 46px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-bar:focus {
+      background: #ffffff;
+      border-color: var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .search-icon-left {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .search-clear-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .online-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-pill);
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--status-resolved);
+    }
+    .dot-live {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--status-resolved);
+      box-shadow: 0 0 0 2px rgba(24, 128, 56, 0.2);
+    }
+
+    .user-profile-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      padding: 4px 12px 4px 6px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+    .avatar-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--misis-blue);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .app-workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      padding: 12px 16px 16px;
+    }
+
+    .inbox-view {
+      flex: 1;
+      display: flex;
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+
+    .ticket-list-pane {
+      width: 380px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+    }
+
+    .ticket-list-toolbar {
+      height: 48px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: #fafbfc;
+      gap: 8px;
+    }
+
+    .filter-pills-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    .filter-chip {
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .filter-chip:hover {
+      background: var(--bg-hover);
+    }
+    .filter-chip.is-active {
+      background: var(--misis-blue);
+      color: #ffffff;
+      border-color: var(--misis-blue);
+    }
+
+    .tickets-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .ticket-row {
+      display: flex;
+      flex-direction: column;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background 0.12s;
+      position: relative;
+    }
+    .ticket-row:hover {
+      background: var(--bg-hover);
+    }
+    .ticket-row.is-selected {
+      background: #eef4fe;
+      border-left: 4px solid var(--misis-blue);
+    }
+    .ticket-row.is-unread {
+      background: #ffffff;
+    }
+    .ticket-row.is-unread .ticket-sender {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .ticket-row.is-unread .ticket-subject {
+      font-weight: 700;
+    }
+
+    .ticket-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .ticket-sender-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .ticket-sender {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .badge-role {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .role-tag-applicant {
+      background: var(--role-applicant-bg);
+      color: var(--role-applicant);
+    }
+    .role-tag-student {
+      background: var(--role-student-bg);
+      color: var(--role-student);
+    }
+    .role-tag-teacher {
+      background: var(--role-teacher-bg);
+      color: var(--role-teacher);
+    }
+
+    .ticket-time {
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+
+    .ticket-subject {
+      font-size: 13.5px;
+      color: var(--text-main);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ticket-snippet {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.4;
+    }
+
+    .ticket-status-pill {
+      align-self: flex-start;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+    }
+    .status-badge-new {
+      background: var(--status-new-bg);
+      color: var(--status-new);
+    }
+    .status-badge-progress {
+      background: var(--status-progress-bg);
+      color: var(--status-progress);
+    }
+    .status-badge-resolved {
+      background: var(--status-resolved-bg);
+      color: var(--status-resolved);
+    }
+
+    .ticket-detail-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      overflow-y: auto;
+    }
+
+    .detail-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      gap: 12px;
+      padding: 32px;
+      text-align: center;
+    }
+    .detail-empty-icon {
+      font-size: 48px;
+      opacity: 0.6;
+    }
+
+    .detail-content {
+      display: flex;
+      flex-direction: column;
+      padding: 24px 32px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      gap: 20px;
+    }
+
+    .detail-header-card {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+    }
+
+    .detail-subject-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--misis-blue);
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+
+    .detail-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      background: var(--bg-app);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+    }
+
+    .meta-box {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .meta-box-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+    .meta-box-val {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ticket-body-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-main);
+      white-space: pre-wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .reply-card {
+      background: #ffffff;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .reply-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--misis-blue);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .reply-textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-family: inherit;
+      font-size: 14.5px;
+      line-height: 1.5;
+      color: var(--text-main);
+      outline: none;
+      resize: vertical;
+    }
+    .reply-textarea:focus {
+      border-color: var(--misis-blue);
+      box-shadow: 0 0 0 2px rgba(0, 44, 108, 0.1);
+    }
+
+    .reply-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .status-select {
+      height: 38px;
+      padding: 0 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      font-size: 13.5px;
+      font-weight: 600;
+      background: #ffffff;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .btn-send-reply {
+      height: 40px;
+      padding: 0 20px;
+      background: var(--misis-blue);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-pill);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .btn-send-reply:hover {
+      background: var(--misis-blue-hover);
+    }
+
+    .toast-banner {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1f1f1f;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 100;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+    }
+    .toast-banner.is-visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responses history card */
+    .history-card {
+      background: var(--bg-app);
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--border-color);
+      padding: 14px 16px;
+      margin-top: 10px;
+    }
+    .history-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--status-resolved);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar-nav {
+        width: 72px;
+        padding: 8px;
+      }
+      .nav-item-title, .nav-count, .nav-section-title, .brand-logo-title, .brand-sub, .btn-compose span {
+        display: none;
+      }
+      .btn-compose {
+        padding: 0;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        justify-content: center;
+      }
+      .inbox-view {
+        margin-right: 0;
+      }
+      .ticket-list-pane {
+        width: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="mail-header">
+    <div class="header-left">
+      <div class="brand-logo-wrap" title="Единая почта поддержки Университета МИСИС">
+        <!-- Exact Official MISIS Rebrand Vector Mark -->
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="opGradOuterTL" x1="100%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#00c8f8"/>
+              <stop offset="55%" stop-color="#0072ce"/>
+              <stop offset="100%" stop-color="#004de6"/>
+            </linearGradient>
+            <linearGradient id="opGradOuterBR" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#004de6"/>
+              <stop offset="45%" stop-color="#0072ce"/>
+              <stop offset="100%" stop-color="#00c8f8"/>
+            </linearGradient>
+            <linearGradient id="opGradCoreCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4ff"/>
+              <stop offset="60%" stop-color="#0099f7"/>
+              <stop offset="100%" stop-color="#0066eb"/>
+            </linearGradient>
+            <linearGradient id="opGradCoreBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0052d4"/>
+              <stop offset="50%" stop-color="#0044b8"/>
+              <stop offset="100%" stop-color="#002b66"/>
+            </linearGradient>
+          </defs>
+          <path d="M 50 0 A 50 50 0 0 0 0 50 L 13.5 50 A 36.5 36.5 0 0 1 50 13.5 Z" fill="url(#opGradOuterTL)"/>
+          <path d="M 50 100 A 50 50 0 0 0 100 50 L 86.5 50 A 36.5 36.5 0 0 1 50 86.5 Z" fill="url(#opGradOuterBR)"/>
+          <path d="M 50 13.5 A 36.5 36.5 0 0 1 86.5 50 L 74.5 50 A 24.5 24.5 0 0 1 50 74.5 L 50 62.5 A 12.5 12.5 0 0 0 50 37.5 L 50 13.5 Z" fill="url(#opGradCoreCyan)"/>
+          <path d="M 50 86.5 A 36.5 36.5 0 0 1 13.5 50 L 25.5 50 A 24.5 24.5 0 0 1 50 25.5 L 50 37.5 A 12.5 12.5 0 0 0 50 62.5 L 50 86.5 Z" fill="url(#opGradCoreBlue)"/>
+        </svg>
+        <div>
+          <div class="brand-logo-title">МИСИС</div>
+          <span class="brand-sub">Операторская служба</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <svg class="search-icon-left" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="mailSearchInput" class="search-bar" placeholder="Поиск по обращениям, email или теме...">
+      <button id="btnSearchClear" class="search-clear-btn" title="Очистить поиск">✕</button>
+    </div>
+
+    <div class="header-right">
+      <div class="user-profile-badge" title="Оператор службы поддержки МИСИС">
+        <div class="avatar-circle">ОП</div>
+        <span style="font-weight:600; font-size:13px; color:var(--text-secondary);">Оператор поддержки</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-workspace">
+    <main class="inbox-view">
+      <!-- Left list pane: Список писем -->
+      <section class="ticket-list-pane" aria-label="Список писем">
+        <div class="ticket-list-toolbar">
+          <span style="font-size:13px; font-weight:700; color:var(--misis-blue);" id="mailListTitle">Входящие обращения</span>
+          <div class="filter-pills-bar">
+            <button class="filter-chip is-active" data-subfilter="all">Все</button>
+            <button class="filter-chip" data-subfilter="applicant">Поступающие</button>
+            <button class="filter-chip" data-subfilter="student">Студенты</button>
+            <button class="filter-chip" data-subfilter="teacher">Преподаватели</button>
+          </div>
+        </div>
+
+        <div class="tickets-scroll-area" id="ticketsListContainer" role="feed">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </section>
+
+      <!-- Right detail reading pane: Как выглядит пришедшее письмо + Поле для ответа -->
+      <section class="ticket-detail-pane" id="ticketDetailPane" aria-label="Содержимое обращения">
+        <div class="detail-empty-state" id="detailEmptyState">
+          <div class="detail-empty-icon">✉️</div>
+          <h2 style="font-size:18px; font-weight:600; color:var(--text-main);">Выберите обращение из списка</h2>
+          <p style="font-size:14px; max-width:360px;">Здесь отобразится полная информация: адрес заявителя, его роль в университете, текст обращения и дата создания.</p>
+        </div>
+
+        <div class="detail-content" id="detailContent" style="display:none;">
+          <div class="detail-header-card">
+            <h1 class="detail-subject-title" id="detSubject">—</h1>
+
+            <!-- 4 Required Fields Card -->
+            <div class="detail-meta-grid">
+              <!-- 1. Почта обращающегося -->
+              <div class="meta-box">
+                <span class="meta-box-label">1. Почта обращающегося</span>
+                <span class="meta-box-val" id="detEmail">user@edu.misis.ru</span>
+              </div>
+
+              <!-- 2. Роль -->
+              <div class="meta-box">
+                <span class="meta-box-label">2. Роль в университете</span>
+                <span class="meta-box-val" id="detRoleBadge">
+                  <span class="badge-role role-tag-student">Студент</span>
+                </span>
+              </div>
+
+              <!-- 4. Дата и время создания -->
+              <div class="meta-box">
+                <span class="meta-box-label">4. Дата и время создания</span>
+                <span class="meta-box-val" id="detDateTime">12 сентября 2026, 14:32</span>
+              </div>
+
+              <!-- Номер тикета -->
+              <div class="meta-box">
+                <span class="meta-box-label">Номер тикета</span>
+                <span class="meta-box-val" id="detTicketId" style="font-family:monospace; color:var(--misis-blue);">MISIS-T-12345</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Сам текст обращения -->
+          <div>
+            <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); margin-bottom:6px;">
+              3. Текст обращения заявителя
+            </div>
+            <div class="ticket-body-card" id="detBodyText">
+              Текст обращения...
+            </div>
+          </div>
+
+          <!-- Operator Reply history if already answered -->
+          <div id="replyHistoryBox" class="history-card" style="display:none;">
+            <div class="history-header">Ответ службы поддержки МИСИС</div>
+            <div id="replyHistoryText" style="font-size:14px; line-height:1.5; color:var(--text-main); white-space:pre-wrap;"></div>
+            <div id="replyHistoryMeta" style="font-size:12px; color:var(--text-dim); margin-top:6px;"></div>
+          </div>
+
+          <!-- Reply Composer: Поле для ответа -->
+          <div class="reply-card">
+            <div class="reply-card-title">
+              <span>Ответ заявителю</span>
+              <span style="font-size:12px; font-weight:normal; color:var(--text-dim);">Письмо будет отправлено на указанный адрес заявителя</span>
+            </div>
+
+            <textarea id="replyTextarea" class="reply-textarea" placeholder="Напишите официальный ответ сотрудника университета..."></textarea>
+
+            <div class="reply-actions-row">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label for="selectNewStatus" style="font-size:13px; font-weight:600; color:var(--text-secondary);">Статус после ответа:</label>
+                <select id="selectNewStatus" class="status-select">
+                  <option value="resolved" selected>Решено (Закрыть тикет)</option>
+                  <option value="in_progress">В работе (Ждёт уточнения)</option>
+                </select>
+              </div>
+
+              <button class="btn-send-reply" id="btnSendReply">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                <span>Отправить ответ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="toast-banner" id="toastBanner" role="alert">
+    <span id="toastMessage">Новое обращение поступило в систему</span>
+  </div>
+
+  <script>
+    // Storage Key for cross-tab live synchronization with index.html
+    const STORAGE_KEY = 'misis_support_tickets_v1';
+
+    const ROLE_LABELS = {
+      applicant: 'Поступающий',
+      student: 'Студент',
+      teacher: 'Преподаватель'
+    };
+
+    const ROLE_CLASSES = {
+      applicant: 'role-tag-applicant',
+      student: 'role-tag-student',
+      teacher: 'role-tag-teacher'
+    };
+
+    const STATUS_LABELS = {
+      new: 'Новое',
+      in_progress: 'В работе',
+      resolved: 'Решено'
+    };
+
+    const STATUS_CLASSES = {
+      new: 'status-badge-new',
+      in_progress: 'status-badge-progress',
+      resolved: 'status-badge-resolved'
+    };
+
+    // Initial mock tickets showcasing all roles and formats
+    const INITIAL_TICKETS = [
+      {
+        id: 'MISIS-T-84921',
+        email: 'd.smirnov@edu.misis.ru',
+        role: 'student',
+        subject: 'Вопрос по академической стипендии за сентябрь',
+        body: 'Здравствуйте! Я перевёлся на второй курс ИТКН, летнюю сессию закрыл на «отлично». Подскажите, когда поступит повышенная стипендия на карту МИР и нужно ли повторно подавать реквизиты в стипендиальную комиссию?',
+        created_at: '2026-09-12T10:15:00',
+        status: 'new',
+        unread: true,
+        reply: null
+      },
+      {
+        id: 'MISIS-T-84918',
+        email: 'ekaterina.morozova@gmail.com',
+        role: 'applicant',
+        subject: 'Поступление: льготы призерам олимпиады «МИСИС зажигает звёзды»',
+        body: 'Добрый день! Являюсь призёром заключительного этапа олимпиады «МИСИС зажигает звёзды» по физике. Подскажите, даёт ли этот диплом право на БВИ или дополнительные баллы при поступлении на направление «Информатика и вычислительная техника» в 2026 году?',
+        created_at: '2026-09-12T09:40:00',
+        status: 'new',
+        unread: true,
+        reply: null
+      },
+      {
+        id: 'MISIS-T-84902',
+        email: 'volkov.am@misis.ru',
+        role: 'teacher',
+        subject: 'Бронирование мультимедийной аудитории Б-601 на 18 сентября',
+        body: 'Коллеги, приветствую. 18 сентября с 14:00 до 16:00 планируется проведение открытого межкафедрального семинара Института новых материалов. Прошу согласовать закрепление аудитории Б-601 и подключение проекционного оборудования.',
+        created_at: '2026-09-11T16:20:00',
+        status: 'in_progress',
+        unread: false,
+        reply: 'Заявка принята диспетчерской службой. Оборудование проверено, бронь зафиксирована.'
+      },
+      {
+        id: 'MISIS-T-84889',
+        email: 'a.petrova@edu.misis.ru',
+        role: 'student',
+        subject: 'Заказ архивной выписки оценок для стажировки',
+        body: 'Здравствуйте! Для прохождения конкурсного отбора в научно-исследовательский центр требуется официальная выписка из зачётно-экзаменационных ведомостей на русском и английском языках. Подскажите срок изготовления.',
+        created_at: '2026-09-11T11:05:00',
+        status: 'resolved',
+        unread: false,
+        reply: 'Выписка подготовлена и подписана дирекцией института. Вы можете получить оригинал в Едином деканате (каб. 102).'
+      }
+    ];
+
+    // State
+    let tickets = [];
+    let selectedTicketId = null;
+    let currentFilterStatus = 'all';
+    let currentFilterRole = 'all';
+    let currentSearchQuery = '';
+
+    // Elements
+    const ticketsListContainer = document.getElementById('ticketsListContainer');
+    const detailEmptyState = document.getElementById('detailEmptyState');
+    const detailContent = document.getElementById('detailContent');
+    const mailSearchInput = document.getElementById('mailSearchInput');
+    const btnSearchClear = document.getElementById('btnSearchClear');
+    const toastBanner = document.getElementById('toastBanner');
+    const toastMessage = document.getElementById('toastMessage');
+
+    // Detail elements
+    const detSubject = document.getElementById('detSubject');
+    const detEmail = document.getElementById('detEmail');
+    const detRoleBadge = document.getElementById('detRoleBadge');
+    const detDateTime = document.getElementById('detDateTime');
+    const detTicketId = document.getElementById('detTicketId');
+    const detBodyText = document.getElementById('detBodyText');
+    const replyHistoryBox = document.getElementById('replyHistoryBox');
+    const replyHistoryText = document.getElementById('replyHistoryText');
+    const replyHistoryMeta = document.getElementById('replyHistoryMeta');
+    const replyTextarea = document.getElementById('replyTextarea');
+    const selectNewStatus = document.getElementById('selectNewStatus');
+    const btnSendReply = document.getElementById('btnSendReply');
+    const mailListTitle = document.getElementById('mailListTitle');
+
+    function loadTickets() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          tickets = JSON.parse(raw);
+        } else {
+          tickets = INITIAL_TICKETS;
+          saveTickets();
+        }
+      } catch (e) {
+        tickets = INITIAL_TICKETS;
+      }
+      updateCounters();
+      renderTicketList();
+    }
+
+    function saveTickets() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tickets));
+      } catch (e) {
+        console.error('Save error', e);
+      }
+      updateCounters();
+    }
+
+    // BroadcastChannel to receive real-time tickets submitted from index.html
+    const channel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('misis_support_channel') : null;
+    if (channel) {
+      channel.onmessage = (event) => {
+        if (event.data && event.data.type === 'NEW_TICKET') {
+          handleIncomingTicket(event.data.ticket);
+        }
+      };
+    }
+
+    // Also listen to storage events from other windows
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY) {
+        loadTickets();
+        if (selectedTicketId) {
+          renderTicketDetail(selectedTicketId);
+        }
+      }
+    });
+
+    function handleIncomingTicket(newTicket) {
+      // Prepend to top
+      const exists = tickets.find(t => t.id === newTicket.id);
+      if (!exists) {
+        tickets.unshift(newTicket);
+        saveTickets();
+        renderTicketList();
+        showToast(`Новое обращение ${newTicket.id} от ${newTicket.email}!`);
+      }
+    }
+
+    function formatTicketDateTime(isoStr) {
+      if (!isoStr) return '—';
+      try {
+        const d = new Date(isoStr);
+        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        const day = d.getDate();
+        const month = months[d.getMonth()];
+        const year = d.getFullYear();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        return `${day} ${month} ${year}, ${hours}:${mins}`;
+      } catch {
+        return isoStr;
+      }
+    }
+
+    function formatListTime(isoStr) {
+      if (!isoStr) return '';
+      try {
+        const d = new Date(isoStr);
+        const now = new Date();
+        const isToday = d.toDateString() === now.toDateString();
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        if (isToday) return `${hours}:${mins}`;
+        return `${d.getDate()} сен.`;
+      } catch {
+        return '';
+      }
+    }
+
+    function updateCounters() {
+      const count = tickets.length;
+      if (mailListTitle) {
+        mailListTitle.textContent = `Входящие обращения (${count})`;
+      }
+    }
+
+    function getFilteredTickets() {
+      return tickets.filter(ticket => {
+        // Status filter
+        if (currentFilterStatus !== 'all' && ticket.status !== currentFilterStatus) {
+          return false;
+        }
+        // Role filter
+        if (currentFilterRole !== 'all' && ticket.role !== currentFilterRole) {
+          return false;
+        }
+        // Search query
+        if (currentSearchQuery) {
+          const q = currentSearchQuery.toLowerCase();
+          const matchEmail = (ticket.email || '').toLowerCase().includes(q);
+          const matchSubj = (ticket.subject || '').toLowerCase().includes(q);
+          const matchBody = (ticket.body || '').toLowerCase().includes(q);
+          const matchId = (ticket.id || '').toLowerCase().includes(q);
+          if (!matchEmail && !matchSubj && !matchBody && !matchId) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
+    function renderTicketList() {
+      const filtered = getFilteredTickets();
+      ticketsListContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        ticketsListContainer.innerHTML = `
+          <div style="padding: 32px 16px; text-align: center; color: var(--text-dim);">
+            <div style="font-size: 28px; margin-bottom: 8px;">📭</div>
+            <p style="font-weight: 600;">Обращений не найдено</p>
+            <p style="font-size: 13px; margin-top: 4px;">Попробуйте изменить фильтр или поисковый запрос</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(ticket => {
+        const row = document.createElement('article');
+        row.className = `ticket-row ${ticket.id === selectedTicketId ? 'is-selected' : ''} ${ticket.unread ? 'is-unread' : ''}`;
+        row.tabIndex = 0;
+        row.setAttribute('role', 'button');
+        row.setAttribute('aria-label', `Обращение ${ticket.id} от ${ticket.email}`);
+
+        const roleName = ROLE_LABELS[ticket.role] || 'Студент';
+        const roleCls = ROLE_CLASSES[ticket.role] || 'role-tag-student';
+        const statusName = STATUS_LABELS[ticket.status] || 'Новое';
+        const statusCls = STATUS_CLASSES[ticket.status] || 'status-badge-new';
+
+        row.innerHTML = `
+          <div class="ticket-row-top">
+            <div class="ticket-sender-group">
+              <span class="ticket-sender" title="${escapeHtml(ticket.email)}">${escapeHtml(ticket.email)}</span>
+              <span class="badge-role ${roleCls}">${roleName}</span>
+            </div>
+            <span class="ticket-time">${formatListTime(ticket.created_at)}</span>
+          </div>
+          <div class="ticket-subject">${escapeHtml(ticket.subject || 'Без темы')}</div>
+          <div class="ticket-snippet">${escapeHtml(ticket.body || '')}</div>
+          <span class="ticket-status-pill ${statusCls}">${statusName}</span>
+        `;
+
+        row.addEventListener('click', () => {
+          selectTicket(ticket.id);
+        });
+
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectTicket(ticket.id);
+          }
+        });
+
+        ticketsListContainer.appendChild(row);
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function selectTicket(ticketId) {
+      selectedTicketId = ticketId;
+
+      // Mark as read
+      const t = tickets.find(x => x.id === ticketId);
+      if (t && t.unread) {
+        t.unread = false;
+        saveTickets();
+      }
+
+      renderTicketList();
+      renderTicketDetail(ticketId);
+    }
+
+    function renderTicketDetail(ticketId) {
+      const ticket = tickets.find(t => t.id === ticketId);
+      if (!ticket) {
+        detailEmptyState.style.display = 'flex';
+        detailContent.style.display = 'none';
+        return;
+      }
+
+      detailEmptyState.style.display = 'none';
+      detailContent.style.display = 'flex';
+
+      // 1. Почта обращающегося
+      detEmail.textContent = ticket.email;
+
+      // 2. Роль (Поступающий, Студент, Преподаватель)
+      const roleName = ROLE_LABELS[ticket.role] || 'Студент';
+      const roleCls = ROLE_CLASSES[ticket.role] || 'role-tag-student';
+      detRoleBadge.innerHTML = `<span class="badge-role ${roleCls}">${roleName}</span>`;
+
+      // 3. Текст обращения
+      detBodyText.textContent = ticket.body || 'Текст обращения отсутствует.';
+
+      // 4. Дата и время создания
+      detDateTime.textContent = formatTicketDateTime(ticket.created_at);
+
+      // Тема и ID
+      detSubject.textContent = ticket.subject || 'Обращение заявителя';
+      detTicketId.textContent = ticket.id;
+
+      // Existing reply history
+      if (ticket.reply) {
+        replyHistoryBox.style.display = 'block';
+        replyHistoryText.textContent = ticket.reply;
+        replyHistoryMeta.textContent = `Отправлено оператором поддержки • Статус: ${STATUS_LABELS[ticket.status]}`;
+      } else {
+        replyHistoryBox.style.display = 'none';
+      }
+
+      // Pre-select next status
+      selectNewStatus.value = ticket.status === 'resolved' ? 'resolved' : 'resolved';
+      replyTextarea.value = '';
+    }
+
+    btnSendReply.addEventListener('click', () => {
+      const text = replyTextarea.value.trim();
+      if (!text) {
+        alert('Пожалуйста, введите текст ответа перед отправкой.');
+        replyTextarea.focus();
+        return;
+      }
+
+      const ticket = tickets.find(t => t.id === selectedTicketId);
+      if (!ticket) return;
+
+      const newStatus = selectNewStatus.value;
+      ticket.reply = text;
+      ticket.status = newStatus;
+      ticket.unread = false;
+
+      saveTickets();
+      renderTicketList();
+      renderTicketDetail(ticket.id);
+
+      showToast(`Ответ успешно отправлен на ${ticket.email}! Тикет обновлён.`);
+    });
+
+    // Subfilter chips in toolbar
+    document.querySelectorAll('.filter-chip[data-subfilter]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('is-active'));
+        chip.classList.add('is-active');
+        currentFilterRole = chip.getAttribute('data-subfilter');
+        renderTicketList();
+      });
+    });
+
+    // Search bar
+    mailSearchInput.addEventListener('input', () => {
+      currentSearchQuery = mailSearchInput.value.trim();
+      btnSearchClear.style.display = currentSearchQuery ? 'block' : 'none';
+      renderTicketList();
+    });
+
+    btnSearchClear.addEventListener('click', () => {
+      mailSearchInput.value = '';
+      currentSearchQuery = '';
+      btnSearchClear.style.display = 'none';
+      renderTicketList();
+      mailSearchInput.focus();
+    });
+
+    // Toast helper
+    let toastTimer = null;
+    function showToast(msg) {
+      toastMessage.textContent = msg;
+      toastBanner.classList.add('is-visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastBanner.classList.remove('is-visible');
+      }, 3500);
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      loadTickets();
+      if (tickets.length > 0) {
+        selectTicket(tickets[0].id);
+      }
+    });
+  </script>
+</body>
+</html>

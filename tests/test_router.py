@@ -1,10 +1,40 @@
 """Тесты app/router.py — без сети, без модели. analysis передаётся как dict,
-что и проверяет заявленный в докстрине decide протокол (dict или объект)."""
+что и проверяет заявленный в докстрине decide протокол (dict или объект).
+
+Роутер проверяем на подменённом поиске (fake_faq), а не на боевой базе знаний:
+здесь важна развилка «нашлось / не нашлось», а не содержимое data/faq. Пока
+тесты ссылались на id заглушек, первое же пополнение базы Стасей их уронило,
+хотя роутер вёл себя правильно.
+"""
 from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
+from app import faq, rules
 from app.router import decide
+
+# Две записи ровно для развилки роутера: по слову «стипендия» находится сильно,
+# по всему остальному — не находится вовсе.
+_HIT = {"id": "fx-001", "title": "Стипендии и выплаты",
+        "category": "campus_life", "keywords": ["стипендия", "стипуха"]}
+
+
+@pytest.fixture(autouse=True)
+def fake_faq(monkeypatch):
+    """Поиск отвечает по одному слову-триггеру, остальное считает ненайденным.
+
+    Вес совпадения берём заведомо выше порога rules.MIN_FAQ_SCORE — иначе тест
+    проверял бы не роутер, а настройку порога.
+    """
+    def search(query: str, role: str) -> list[dict]:
+        text = (query or "").lower()
+        if "стипенди" in text or "стипух" in text:
+            return [dict(_HIT, score=rules.MIN_FAQ_SCORE + 5.0)]
+        return []
+
+    monkeypatch.setattr(faq, "search", search)
 
 
 def _analysis(**overrides) -> dict:
@@ -32,7 +62,7 @@ def test_found_and_sufficient_leads_to_answer():
     d = decide(_analysis(), role="student")
     assert d.action == "answer"
     assert d.articles
-    assert d.articles[0]["id"] == "std-003"
+    assert d.articles[0]["id"] == "fx-001"
 
 
 def test_missing_required_fields_leads_to_clarify():
