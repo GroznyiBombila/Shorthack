@@ -1,0 +1,31 @@
+# secrets
+.env
+.env.local
+*.key
+*.pem
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# node
+node_modules/
+dist/
+build/
+.next/
+
+# ide / os
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# data / artifacts
+*.log
+/data/raw/
+/data/tmp/
