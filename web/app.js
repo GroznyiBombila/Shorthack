@@ -29,7 +29,6 @@ window.MOCK_CASE = 'two_questions';
       { label: 'Общежитие', query: 'Предоставление общежития поступающим' }
     ],
     student: [
-      { label: 'Расписание', action: 'schedule' },
       { label: 'Сессия', query: 'Сроки и правила сдачи сессии' },
       { label: 'Стипендия', query: 'Стипендии и сроки выплат' },
       { label: 'Справки', query: 'Как заказать справку об обучении' },
@@ -37,7 +36,6 @@ window.MOCK_CASE = 'two_questions';
     ],
     teacher: [
       { label: 'Доступы к системам', query: 'Доступы к корпоративным системам и сервисам' },
-      { label: 'Расписание аудиторий', action: 'schedule' },
       { label: 'Оформление документов', query: 'Оформление служебных записок и документов' }
     ]
   };
@@ -335,15 +333,11 @@ window.MOCK_CASE = 'two_questions';
       btn.type = 'button';
       btn.className = 'pill-btn';
       btn.textContent = item.label;
-      if (item.action === 'schedule') {
-        btn.addEventListener('click', openScheduleFromSuggestion);
-      } else {
-        btn.setAttribute('title', item.query);
-        btn.addEventListener('click', () => {
-          chatInput.value = item.query;
-          submitChatMessage();
-        });
-      }
+      btn.setAttribute('title', item.query);
+      btn.addEventListener('click', () => {
+        chatInput.value = item.query;
+        submitChatMessage();
+      });
       container.appendChild(btn);
     });
   }
@@ -1015,16 +1009,6 @@ window.MOCK_CASE = 'two_questions';
     picker.focus();
     picker.click();
   });
-
-  function openScheduleFromSuggestion() {
-    if (!state.token) {
-      state.profileContinuation = () => { showScreen('chat'); fetchSchedule(isoDate(new Date())); };
-      state.postVerifyAction = 'profile';
-      showScreen('verifyEmail');
-      return;
-    }
-    fetchSchedule(isoDate(new Date()));
-  }
 
   function fetchSchedule(dateStr) {
     showTypingIndicator();
