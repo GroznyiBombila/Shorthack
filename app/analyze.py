@@ -30,6 +30,7 @@ class Analysis:
     tone: str
     off_topic: bool
     raw: dict
+    query: str = ""
     degraded: bool = False
 
 
@@ -71,6 +72,7 @@ def _degrade(text: str, role: str, raw: dict) -> Analysis:
         tone="neutral",
         off_topic=False,
         raw=raw,
+        query=text,
         degraded=True,
     )
 
@@ -102,6 +104,9 @@ def analyze(text: str, role: str) -> Analysis:
 
     questions = _as_str_list(data.get("questions")) or [truncated]
 
+    query = data.get("query")
+    query = query.strip() if isinstance(query, str) and query.strip() else truncated
+
     return Analysis(
         questions=questions,
         category=category,
@@ -111,5 +116,6 @@ def analyze(text: str, role: str) -> Analysis:
         tone=tone,
         off_topic=off_topic,
         raw=data,
+        query=query,
         degraded=False,
     )
