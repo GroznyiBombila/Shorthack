@@ -29,7 +29,7 @@ def _semester_start() -> datetime.date:
 def week_parity(date: datetime.date) -> str:
     """'upper' | 'lower', relative to SEMESTER_START."""
     weeks = (date - _semester_start()).days // 7
-    return "upper" if weeks % 2 == 0 else "lower"
+    return "lower" if weeks % 2 == 0 else "upper"
 
 
 def load_all(directory: str = "data/schedule") -> None:
