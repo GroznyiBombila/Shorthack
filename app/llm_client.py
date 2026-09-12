@@ -130,8 +130,9 @@ def _extract_json(resp: httpx.Response) -> tuple[dict, dict]:
 def complete_json(system: str, user: str, *, max_tokens: int = 1200) -> dict:
     """Разбор промпта моделью с обязательным JSON-ответом.
 
-    Порядок: кэш основной модели -> основная модель -> при 429/413 переключение на
-    запасную -> при 429/413 запасной тоже — LLMUnavailable.
+    Порядок: кэш основной модели -> перебор config.GROQ_MODEL_CHAIN по очереди,
+    переход к следующей модели только на 429/413 (лимит исчерпан или обращение
+    не влезло в контекст) -> если и последняя модель цепочки отказала — LLMUnavailable.
     """
     primary_key = _cache_key(config.GROQ_MODEL, system, user)
     cached = _read_cache(primary_key)
@@ -139,18 +140,19 @@ def complete_json(system: str, user: str, *, max_tokens: int = 1200) -> dict:
         logger.info("llm cache=hit model=%s", cached[1])
         return cached[0]
 
-    resp = _send_with_retry(config.GROQ_MODEL, system, user, max_tokens)
-    model_used = config.GROQ_MODEL
-
-    if resp.status_code in (429, 413):
+    chain = config.GROQ_MODEL_CHAIN
+    resp = model_used = None
+    for i, model in enumerate(chain):
+        resp = _send_with_retry(model, system, user, max_tokens)
+        model_used = model
+        if resp.status_code not in (429, 413):
+            break
+        if i == len(chain) - 1:
+            raise LLMUnavailable(f"все модели цепочки вернули 429/413, последняя {model}")
         logger.warning(
             "llm model=%s status=%s -> переключаюсь на %s",
-            config.GROQ_MODEL, resp.status_code, config.GROQ_MODEL_FALLBACK,
+            model, resp.status_code, chain[i + 1],
         )
-        resp = _send_with_retry(config.GROQ_MODEL_FALLBACK, system, user, max_tokens)
-        model_used = config.GROQ_MODEL_FALLBACK
-        if resp.status_code in (429, 413):
-            raise LLMUnavailable(f"обе модели вернули {resp.status_code}")
 
     if resp.status_code >= 400:
         # Тело ответа в тексте ошибки: без него 400 от Groq неотличимы друг от друга.

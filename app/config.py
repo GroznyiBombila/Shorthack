@@ -32,6 +32,25 @@ GROQ_ENDPOINT: str = os.getenv(
 )
 GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_MODEL_FALLBACK: str = os.getenv("GROQ_MODEL_FALLBACK", "qwen/qwen3.8-27b")
+
+# Полная цепочка моделей на случай, если и основная, и запасная за день упрутся
+# в свой суточный лимит (обе делят его с квотой других команд хакатона на этом
+# же ключе). На бесплатном тарифе Groq нет ни одной chat-модели с лимитом
+# 500К токенов/сутки — единственные модели с таким TPD, llama-prompt-guard-2
+# (22m/86m), не генерируют текст, это классификаторы промпт-инъекций, для
+# составления ответа не годятся. Поэтому вместо одной модели с нужным лимитом
+# собираем цепочку из четырёх пригодных (у каждой по 200К/сутки) — суммарный
+# запас всей цепочки получается 800К/сутки. Порядок — от лучшей по качеству
+# к простой; первые два элемента совпадают с GROQ_MODEL/GROQ_MODEL_FALLBACK
+# выше, чтобы старые .env с них не ломались.
+GROQ_MODEL_CHAIN: tuple[str, ...] = tuple(
+    m.strip() for m in os.getenv(
+        "GROQ_MODEL_CHAIN",
+        f"{GROQ_MODEL},{GROQ_MODEL_FALLBACK},openai/gpt-oss-20b,qwen/qwen3.6-27b",
+    ).split(",")
+    if m.strip()
+)
+
 LLM_TIMEOUT: float = float(os.getenv("LLM_TIMEOUT", "30"))
 
 # --- Почта ---
